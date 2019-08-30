@@ -1,0 +1,12 @@
+[package]
+name = "awscredx"
+version = "0.1.0"
+authors = ["Alexei Samokvalov <alexei@sam701.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "2.33"
+rusoto_core = "0.40"
+rusoto_credential = "0.40"
