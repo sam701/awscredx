@@ -1,11 +1,14 @@
 use rusoto_credential::AwsCredentials;
 use std::fs::File;
-use std::io;
+use std::{io, fs};
 use std::env;
 use std::io::prelude::*;
 use std::fmt::{Display, Formatter, Error};
 use std::path::{Path, PathBuf};
 use std::io::BufReader;
+use std::collections::HashMap;
+use chrono::{Utc, DateTime};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub struct CredentialsFile {
@@ -115,11 +118,23 @@ impl CredentialsFile {
     }
 
     pub fn write(&self) -> io::Result<()> {
-        let mut file = File::create(&self.path)?;
+        let file = File::create(&self.path)?;
         for profile in &self.profiles {
             writeln!(&file, "{}", profile)?;
         }
         Ok(())
+    }
+
+    pub fn get_credentials(&self, profile_name: &str) -> Option<&AwsCredentials> {
+        self.profiles.iter()
+            .find(|p| p.profile_name == profile_name)
+            .map(|p| &p.credentials)
+    }
+
+    pub fn get_profile_names(&self) -> Vec<&str> {
+        self.profiles.iter()
+            .map(|p| p.profile_name.as_str())
+            .collect()
     }
 }
 
@@ -146,6 +161,28 @@ fn read_property(line: &str) -> Option<Property> {
 fn read_credentials() {
     let mut cred_file = CredentialsFile::read("./test").unwrap();
     cred_file.set_profile("test4", AwsCredentials::new("abc2", "cde2", Some("nice".to_owned()), None));
+    assert!(cred_file.get_credentials("test4").is_some());
+    assert!(cred_file.get_credentials("test5").is_none());
     cred_file.write().unwrap();
     println!("{:?}", &cred_file);
+}
+
+
+#[derive(Serialize, Deserialize)]
+struct CredentialExpirations(HashMap<String, DateTime<Utc>>);
+
+impl CredentialExpirations {
+    fn read<P: AsRef<Path>>(path: P) -> Result<Self, String> {
+        let content = match fs::read_to_string(&path) {
+            Ok(c) => c,
+            _ => return Ok(Self(HashMap::new())),
+        };
+        let hm = toml::from_str(&content).map_err(|e| format!("Cannot parse TOML file {}: {}", path.as_ref().display(), e))?;
+        Ok(hm)
+    }
+
+    fn write<P: AsRef<Path>>(&self, path: P) -> Result<(), String> {
+        let content = toml::to_string(self).expect("Cannot encode expirations into TOML");
+        fs::write(path, content).map_err(|e| format!("Cannot write file: {}", e))
+    }
 }
