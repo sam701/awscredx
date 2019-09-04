@@ -1,13 +1,13 @@
 use rusoto_credential::AwsCredentials;
 use std::fs::File;
-use std::{io, fs};
+use std::fs;
 use std::env;
 use std::io::prelude::*;
 use std::fmt::{Display, Formatter, Error};
 use std::path::{Path, PathBuf};
 use std::io::BufReader;
 use std::collections::HashMap;
-use chrono::{Utc, DateTime};
+use chrono::{Utc, DateTime, Duration};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
@@ -43,86 +43,95 @@ impl Display for CredentialsProfile {
 }
 
 impl CredentialsFile {
-    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, io::Error> {
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, String> {
         let mut cf = Self {
             profiles: Vec::new(),
             path: path.as_ref().to_owned(),
         };
 
-        let mut file = match File::open(&path) {
+        let file = match File::open(&path) {
             Ok(f) => f,
             _ => return Ok(cf),
         };
         let br = BufReader::new(&file);
 
 
-        let mut profile_name = None;
-        let mut key_id = None;
-        let mut secret_key = None;
-        let mut token = None;
+        let expiraitons = CredentialExpirations::read(cf.expirations_file_path())?;
+        let mut props: HashMap<String, String> = HashMap::new();
+        let mut profile_name: Option<String> = None;
         for line_result in br.lines() {
-            let ext = line_result?;
+            let ext = line_result.expect("Cannot read line in credentials file");
             let line = ext.trim();
             if let Some(pn) = read_profile_name(line) {
-                if key_id.is_some() {
-                    cf.profiles.push(CredentialsProfile {
-                        profile_name: profile_name.unwrap(),
-                        credentials: AwsCredentials::new(
-                            key_id.unwrap(),
-                            secret_key.unwrap(),
-                            token,
-                            None,
-                        ),
-                    });
+                if let Some(prof_name) = profile_name {
+                    cf.add_credentials(prof_name, &mut props, &expiraitons)?;
                 }
                 profile_name = Some(pn.to_owned());
-                key_id = None;
-                secret_key = None;
-                token = None;
+                props.clear();
             } else if let Some(prop) = read_property(line) {
-                let val = prop.1.to_owned();
-                match prop.0 {
-                    ACCESS_KEY_ID => key_id = Some(val),
-                    SECRET_ACCESS_KEY => secret_key = Some(val),
-                    SESSION_TOKEN => token = Some(val),
-                    _ => {}
-                }
+                props.insert(prop.0.to_owned(), prop.1.to_owned());
             }
         }
-        cf.profiles.push(CredentialsProfile {
-            profile_name: profile_name.unwrap(),
-            credentials: AwsCredentials::new(
-                key_id.unwrap(),
-                secret_key.unwrap(),
-                token,
-                None,
-            ),
-        });
+        if let Some(prof_name) = profile_name {
+            cf.add_credentials(prof_name, &mut props, &expiraitons)?;
+        }
 
         Ok(cf)
     }
 
-    pub fn read_default() -> Result<Self, io::Error> {
+    fn expirations_file_path(&self) -> String {
+        format!("{}.expirations.toml", self.path.display())
+    }
+
+    fn add_credentials(&mut self, profile_name: String, props: &mut HashMap<String, String>, expirations: &CredentialExpirations) -> Result<(), String> {
+        let exp = expirations.0.get(&profile_name).cloned();
+        if let Some(ex) = exp {
+            let now = Utc::now();
+            if now - ex > Duration::zero() {
+                return Ok(());
+            }
+        }
+        let mut get_key = |key: &str| props.remove(key)
+            .ok_or(format!("Profile {} does not have property {}", &profile_name, key));
+        let key_id = get_key(ACCESS_KEY_ID)?;
+        let key_secret = get_key(SECRET_ACCESS_KEY)?;
+        let token = get_key(SESSION_TOKEN)?;
+        self.profiles.push(CredentialsProfile {
+            profile_name,
+            credentials: AwsCredentials::new(
+                key_id,
+                key_secret,
+                Some(token),
+                exp,
+            ),
+        });
+        Ok(())
+    }
+
+    pub fn read_default() -> Result<Self, String> {
         let home = env::var("HOME").expect("HOME is unset");
         Self::read(format!("{}/.aws/credentials", &home))
     }
 
-    pub fn set_profile<P: AsRef<str>>(&mut self, name: P, credentials: AwsCredentials) {
-        dbg!(&self.profiles);
-        self.profiles.retain(|p| &p.profile_name != name.as_ref());
-        dbg!(&self.profiles);
+    pub fn put_credentials<P: AsRef<str>>(&mut self, profile: P, credentials: AwsCredentials) {
+        self.profiles.retain(|p| &p.profile_name != profile.as_ref());
         self.profiles.push(CredentialsProfile {
-            profile_name: name.as_ref().to_owned(),
+            profile_name: profile.as_ref().to_owned(),
             credentials,
         });
     }
 
-    pub fn write(&self) -> io::Result<()> {
-        let file = File::create(&self.path)?;
+    pub fn write(&self) -> Result<(), String> {
+        let file = File::create(&self.path)
+            .map_err(|e| format!("Cannot write file {}: {}", &self.path.display(), e))?;
+        let mut expiraitons = CredentialExpirations::new();
         for profile in &self.profiles {
-            writeln!(&file, "{}", profile)?;
+            writeln!(&file, "{}", profile).expect("Cannot write credentials profile");
+            if let Some(exp) = profile.credentials.expires_at() {
+                expiraitons.0.insert(profile.profile_name.clone(), exp.clone());
+            }
         }
-        Ok(())
+        expiraitons.write(self.expirations_file_path())
     }
 
     pub fn get_credentials(&self, profile_name: &str) -> Option<&AwsCredentials> {
@@ -160,11 +169,26 @@ fn read_property(line: &str) -> Option<Property> {
 #[test]
 fn read_credentials() {
     let mut cred_file = CredentialsFile::read("./test").unwrap();
-    cred_file.set_profile("test4", AwsCredentials::new("abc2", "cde2", Some("nice".to_owned()), None));
-    assert!(cred_file.get_credentials("test4").is_some());
-    assert!(cred_file.get_credentials("test5").is_none());
+    let now = Utc::now();
+    cred_file.put_credentials("test1", AwsCredentials::new("abc2", "cde2", Some("nice".to_owned()), Some(now + Duration::minutes(10))));
+    cred_file.put_credentials("test2", AwsCredentials::new("k2", "s2", Some("token1".to_owned()), Some(now - Duration::minutes(10))));
+    cred_file.put_credentials("test3", AwsCredentials::new("k2", "s2", Some("token1".to_owned()), None));
     cred_file.write().unwrap();
+
+    cred_file = CredentialsFile::read("./test").unwrap();
+    assert!(cred_file.get_credentials("test2").is_none());
+    assert_eq!(cred_file.get_credentials("test1").unwrap().aws_access_key_id(), "abc2");
+    assert_eq!(cred_file.get_credentials("test1").unwrap().aws_secret_access_key(), "cde2");
+    let token = Some("nice".to_owned());
+    assert_eq!(cred_file.get_credentials("test1").unwrap().token(), &token);
+    let exp = Some(now + Duration::minutes(10));
+    assert_eq!(cred_file.get_credentials("test1").unwrap().expires_at(), &exp);
+    assert!(cred_file.get_credentials("test3").is_some());
+
     println!("{:?}", &cred_file);
+
+    fs::remove_file(&cred_file.path).unwrap();
+    fs::remove_file(cred_file.expirations_file_path()).unwrap();
 }
 
 
@@ -177,12 +201,17 @@ impl CredentialExpirations {
             Ok(c) => c,
             _ => return Ok(Self(HashMap::new())),
         };
-        let hm = toml::from_str(&content).map_err(|e| format!("Cannot parse TOML file {}: {}", path.as_ref().display(), e))?;
-        Ok(hm)
+        let hm = toml::from_str(&content)
+            .map_err(|e| format!("Cannot parse TOML file {}: {}", path.as_ref().display(), e))?;
+        Ok(CredentialExpirations(hm))
+    }
+
+    fn new() -> Self {
+        Self(HashMap::new())
     }
 
     fn write<P: AsRef<Path>>(&self, path: P) -> Result<(), String> {
-        let content = toml::to_string(self).expect("Cannot encode expirations into TOML");
+        let content = toml::to_string(&self.0).expect("Cannot encode expirations into TOML");
         fs::write(path, content).map_err(|e| format!("Cannot write file: {}", e))
     }
 }
