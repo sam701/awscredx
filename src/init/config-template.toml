@@ -1,0 +1,37 @@
+# This is a configuration sample.
+# You should add your role ARNs and desired profiles.
+# ===================================================
+
+# This profile name must match the profile in ~/.aws/credentials file
+# You should have something like this
+#
+# [main]
+# aws_access_key_id = blabla
+# aws_secret_access_key = blabla
+main_profile = "main"
+
+# Copy this in AWS web console IAM
+mfa_serial_number = "arn:aws:iam::MAIN_ACCOUNT_ID:mfa/USERNAME"
+
+[profiles]
+
+# You can specify profiles by either providing the role ARNs
+dev = "arn:aws:iam::123456589012:role/Admin"
+prod = "arn:aws:iam::123456589013:role/TestRole"
+
+# ... or by providing an object that can contain additional fields
+[profiles.dev-read-only]
+
+# This field is required
+role_arn = "arn:aws:iam::123456589014:role/ReadOnly"
+
+# (optional) Profile name that must be used to assume this role
+# parent_profile = "dev"
+
+# (optional)
+# duration_sec = 7200
+
+[profiles.dev-db]
+
+# This field is required
+role_arn = "arn:aws:iam::123456589014:role/Db"

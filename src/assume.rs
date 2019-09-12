@@ -1,89 +1,66 @@
 use rusoto_sts::{StsClient, Sts, AssumeRoleRequest, GetSessionTokenRequest, NewAwsCredsForStsCreds};
 use rusoto_core::{Region, HttpClient};
 use rusoto_credential::{AwsCredentials, StaticProvider};
+use crate::config::{Config, AssumeSubject};
+use crate::credentials::{ProfileName, CredentialsFile};
+use std::error::Error;
 
-pub enum AssumeSubject {
-    Role {
-        role_arn: String,
-        session_name: String,
-    },
-    MfaSession {
-        serial_number: String,
-        token_code: String,
-    },
-}
-
-pub struct RoleAssumer {
+pub struct RoleAssumer<'a> {
     region: Region,
-    store: Box<dyn CredentialsStore>,
-    meta_data_provider: Box<dyn ProfileMetaDataProvider>,
+    store: CredentialsFile,
+    config: &'a Config,
 }
 
-#[derive(Clone)]
-pub struct Profile(String);
-
-pub trait CredentialsStore {
-    fn get_credentials(&self, profile: &Profile) -> Option<&AwsCredentials>;
-    fn put_credentials(&mut self, profile: Profile, credentials: AwsCredentials) -> &AwsCredentials;
-    fn persist(&self) -> Result<(), String>;
+pub struct Cred {
+    key: String,
+    secret: String,
+    token: Option<String>,
 }
 
-pub trait ProfileMetaDataProvider {
-    fn get_source_profile(&self, profile: &Profile) -> Option<&Profile>;
-    fn get_assume_subject(&self, profile: &Profile) -> AssumeSubject;
+impl From<&AwsCredentials> for Cred {
+    fn from(c: &AwsCredentials) -> Self {
+        Cred {
+            key: c.aws_access_key_id().to_owned(),
+            secret: c.aws_secret_access_key().to_owned(),
+            token: c.token().clone(),
+        }
+    }
 }
 
-struct CredentialsChain {
-    initial: AwsCredentials,
-    profiles: Vec<Profile>,
-}
-
-impl RoleAssumer {
-    pub fn new(region: Region, store: Box<dyn CredentialsStore>, meta_data_provider: Box<dyn ProfileMetaDataProvider>) -> Self {
+impl<'a> RoleAssumer<'a> {
+    pub fn new(region: Region, store: CredentialsFile, config: &'a Config) -> Self {
         Self {
             region,
             store,
-            meta_data_provider,
+            config,
         }
     }
 
-    fn assume_chain(&mut self, chain: CredentialsChain) -> Result<(), String> {
-        let mut cred = &chain.initial;
-        for p in chain.profiles {
-            let client = create_client(cred, self.region.clone());
-            let new_cred = assume_subject(&client, self.meta_data_provider.get_assume_subject(&p))?;
-            cred = self.store.put_credentials(p, new_cred);
-        }
-        self.store.persist()
+    pub fn assume(&mut self, profile: &str) -> Result<(), String> {
+        let pn = ProfileName::new(profile.to_owned());
+        self.profile_credentials(&pn).map(|_| ())?;
+        self.store.write()
     }
 
-    fn build_cred_chain(&self, profile: Profile) -> Result<CredentialsChain, String> {
-        let mut p = profile;
-        let mut list = Vec::new();
-        let mut result = None;
-        loop {
-            match self.store.get_credentials(&p) {
-                None => {
-                    list.push(p.clone());
-                    p = self.meta_data_provider.get_source_profile(&p)
-                        .map(|x| x.clone())
-                        .ok_or(format!("Cannot get source profile for {}", &p.0))?;
-                }
-                Some(cred) => {
-                    result = Some(CredentialsChain {
-                        initial: cred.clone(),
-                        profiles: list,
-                    });
-                    break;
-                }
-            }
+    fn profile_credentials(&mut self, profile: &ProfileName) -> Result<Cred, String> {
+        match self.store.get_credentials(&profile) {
+            Some(cred) => {
+                Ok(cred.into())
+            },
+            None => {
+                let parent = self.config.parent_profile(profile)
+                    .ok_or(format!("Cannot get source profile for {}", &profile))?
+                    .clone();
+                let parent_cred = self.profile_credentials(&parent)?;
+                let sub = self.config.assume_subject(profile)?
+                    .ok_or(format!("cannot get assume subject for profile {}", profile))?;
+                let parent_client = create_client(parent_cred, self.region.clone());
+                let new_cred= assume_subject(&parent_client, sub)?;
+                let out_cred = (&new_cred).into();
+                self.store.put_credentials(profile.clone(), new_cred);
+                Ok(out_cred)
+            },
         }
-        Ok(result.unwrap())
-    }
-
-    pub fn assume(&mut self, profile: Profile) -> Result<(), String> {
-        let chain = self.build_cred_chain(profile)?;
-        self.assume_chain(chain)
     }
 }
 
@@ -99,10 +76,10 @@ fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCrede
         }
         AssumeSubject::MfaSession { serial_number, token_code } => {
             let mut req = GetSessionTokenRequest::default();
-            req.serial_number = Some(serial_number.to_string());
-            req.token_code = Some(token_code.to_string());
+            req.serial_number = Some(serial_number);
+            req.token_code = Some(token_code);
             let result = client.get_session_token(req).sync()
-                .map_err(|e| format!("Unable to get MFA session token: {}", e))?;
+                .map_err(|e| format!("Unable to get MFA session token: {}", e.description()))?;
 
             result.credentials.expect("STS successful response contains None credentials")
         }
@@ -113,13 +90,13 @@ fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCrede
 }
 
 
-fn create_client(credentials: &AwsCredentials, region: Region) -> StsClient {
+fn create_client(credentials: Cred, region: Region) -> StsClient {
     StsClient::new_with(
         HttpClient::new().unwrap(),
         StaticProvider::new(
-            credentials.aws_access_key_id().to_owned(),
-            credentials.aws_secret_access_key().to_owned(),
-            credentials.token().clone(),
+            credentials.key,
+            credentials.secret,
+            credentials.token,
             None,
         ),
         region,
