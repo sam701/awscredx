@@ -6,6 +6,7 @@ extern crate toml;
 extern crate serde;
 extern crate custom_error;
 extern crate chrono;
+extern crate colored;
 
 use crate::config::Config;
 use crate::credentials::CredentialsFile;
