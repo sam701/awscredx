@@ -6,12 +6,9 @@ extern crate toml;
 extern crate serde;
 extern crate custom_error;
 extern crate chrono;
-extern crate colored;
+extern crate ansi_term;
 
 use crate::config::Config;
-use crate::credentials::CredentialsFile;
-use crate::assume::RoleAssumer;
-use rusoto_core::Region;
 
 mod config;
 mod credentials;
@@ -22,59 +19,48 @@ fn main() {
     let matches = clap::App::new("awscredx")
         .version("0.1.0")
         .about("AWS credentials management, a.k.a. role assumption made easy")
-        .arg(clap::Arg::with_name("assume-role")
-            .long("assume-role")
-            .takes_value(true)
-            .value_name("profile-name")
-            .help("Prints shell commands to assume the role for a given profile"))
-        .arg(clap::Arg::with_name("init")
-            .long("init")
-            .help("Initializes local environment"))
+        .subcommand(clap::SubCommand::with_name("assume")
+            .about("Prints shell commands to assume the role for a given profile")
+            .arg(clap::Arg::with_name("profile")
+                .value_name("profile-name")
+                .required(true)
+                .help("Profile name which role to assume")))
+        .subcommand(clap::SubCommand::with_name("init")
+            .about("Initializes local environment"))
+        .subcommand(clap::SubCommand::with_name("list-profiles")
+            .about("Lists configured profiles with their role ARNs"))
         .get_matches();
 
-    let result = if let Some(profile) = matches.value_of("assume-role") {
-        run_assume(profile)
-    } else if matches.is_present("init") {
-        init::run()
-    } else {
-        print_first_time_message()
-    };
-
-    match  result {
-        Err(e) => print_error(e),
-        Ok(_) => {}
-    }
-
-}
-
-fn run_assume(profile: &str) -> Result<(), String> {
-    match Config::read()? {
-        Some(config) => {
-            let cred_file = CredentialsFile::read_default()?;
-            let mut assumer = RoleAssumer::new(
-                Region::EuCentral1,
-                cred_file,
-                &config,
-            );
-            assumer.assume(profile)?;
-            println!("Success!");
-            Ok(())
-        }
-        None => {
-            Err(format!("configuration file {} does not exist.\nRun 'awscredx --init' to initialize your working environment.",
-                        config::CONFIG_FILE_PATH))
-        }
+    match matches.subcommand() {
+        ("assume", Some(arg)) =>
+            assume::run(arg.value_of("profile-name").unwrap()),
+        ("init", _) =>
+            init::run(),
+        ("list-profiles", _) =>
+            print_profiles(),
+        _ => print_first_time_message()
     }
 }
 
-fn print_error(str: String) {
-    println!("ERROR: {}", str)
-}
-
-fn print_first_time_message() -> Result<(), String>{
+fn print_first_time_message() {
     println!(r#"Welcome to awscredx!
 
 It seems you are running this command for the first time.
 Call 'awscredx init' to create the configuration file template and setup a shell helper function."#);
-    Ok(())
+}
+
+fn read_config() -> Config {
+    match Config::read()? {
+        Some(config) => config,
+        None => {
+            println!("configuration file {} does not exist.\nRun 'awscredx init' to initialize your working environment.",
+                        config::CONFIG_FILE_PATH);
+            ::std::process::exit(1);
+        }
+    }
+}
+
+fn print_profiles() {
+    let c = read_config();
+    for p in c.get
 }

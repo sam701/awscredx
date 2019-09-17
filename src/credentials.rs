@@ -171,12 +171,6 @@ impl CredentialsFile {
             .find(|p| p.profile_name == *profile_name)
             .map(|p| &p.credentials)
     }
-
-    pub fn get_profile_names(&self) -> Vec<&ProfileName> {
-        self.profiles.iter()
-            .map(|p| &p.profile_name)
-            .collect()
-    }
 }
 
 fn read_profile_name(line: &str) -> Option<&str> {
