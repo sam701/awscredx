@@ -8,7 +8,7 @@ extern crate custom_error;
 extern crate chrono;
 extern crate ansi_term;
 
-use crate::config::Config;
+use crate::config::{Config, Profile};
 
 mod config;
 mod credentials;
@@ -50,17 +50,26 @@ Call 'awscredx init' to create the configuration file template and setup a shell
 }
 
 fn read_config() -> Config {
-    match Config::read()? {
-        Some(config) => config,
-        None => {
+    match Config::read() {
+        Ok(Some(config)) => config,
+        Ok(None) => {
             println!("configuration file {} does not exist.\nRun 'awscredx init' to initialize your working environment.",
                         config::CONFIG_FILE_PATH);
             ::std::process::exit(1);
+        },
+        Err(e) => {
+            println!("Cannot read config: {}", e);
+            ::std::process::exit(2);
         }
     }
 }
 
 fn print_profiles() {
     let c = read_config();
-    for p in c.get
+    let mut pairs: Vec<(&str, &Profile)> = c.profiles.iter().map(|(n,p)| (n.as_ref(), p)).collect();
+    pairs.sort_by_key(|x| x.0);
+    for (name, prof) in pairs {
+        println!("{}", name);
+        println!("  {}", prof.role_arn);
+    }
 }

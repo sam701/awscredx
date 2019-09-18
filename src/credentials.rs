@@ -40,6 +40,12 @@ impl Display for ProfileName {
     }
 }
 
+impl AsRef<str> for ProfileName {
+    fn as_ref(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
 #[derive(Debug)]
 struct CredentialsProfile {
     profile_name: ProfileName,

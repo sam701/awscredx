@@ -10,7 +10,7 @@ pub struct Config {
     main_profile: ProfileName,
     mfa_profile: ProfileName,
     mfa_serial_number: String,
-    profiles: HashMap<ProfileName, Profile>,
+    pub profiles: HashMap<ProfileName, Profile>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -22,11 +22,11 @@ enum ProfileValue {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
-struct Profile {
-    role_arn: String,
-    duration_sec: Option<u64>,
-    parent_profile: Option<ProfileName>,
-    color: Option<String>,
+pub struct Profile {
+    pub role_arn: String,
+    pub duration_sec: Option<u64>,
+    pub parent_profile: Option<ProfileName>,
+    pub color: Option<String>,
 }
 
 pub enum AssumeSubject {
