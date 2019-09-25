@@ -49,7 +49,7 @@ impl<'a> RoleAssumer<'a> {
             },
             None => {
                 let parent = self.config.parent_profile(profile)
-                    .ok_or(format!("Cannot get source profile for {}", &profile))?
+                    .ok_or(format!("profile '{}' does not exist", &profile))?
                     .clone();
                 let parent_cred = self.profile_credentials(&parent)?;
                 let sub = self.config.assume_subject(profile)?
@@ -71,7 +71,7 @@ fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCrede
             req.role_arn = role_arn;
             req.role_session_name = session_name;
             let result = client.assume_role(req).sync()
-                .map_err(|e| format!("Unable to assume role: {}", e))?;
+                .map_err(|e| format!("unable to assume role: {}", e))?;
             result.credentials.expect("STS successful response contains None credentials")
         }
         AssumeSubject::MfaSession { serial_number, token_code } => {

@@ -1,17 +1,21 @@
-use std::env;
-use crate::config;
+use std::{env, process};
 use std::path::Path;
 use crate::config::Config;
 use crate::credentials::CredentialsFile;
 use crate::assume::assumer::RoleAssumer;
 use rusoto_core::Region;
+use ansi_term::{Style, Color};
 
 mod assumer;
 
 pub fn run(profile: &str, config: &Config) {
     match run_raw(profile, config) {
         Ok(_) => {}
-        Err(e) => println!("ERROR: {}", e),
+        Err(e) => {
+            let err_style = Style::new().fg(Color::Red).bold();
+            eprintln!("{}: {}", err_style.paint("ERROR"), e);
+            process::exit(1);
+        },
     }
 }
 
@@ -34,10 +38,10 @@ fn print_profile(profile_name: &str) {
                 .file_name().unwrap()
                 .to_str().unwrap();
             match file {
-                "fish" => println!("set -x AWS_PROFILE \"{}\"", profile_name),
-                _ => println!("export AWS_PROFILE=\"{}\"", profile_name),
+                "fish" => println!("set -x AWS_PROFILE {}", profile_name),
+                _ => println!("export AWS_PROFILE={}", profile_name),
             }
         }
-        None => println!("export AWS_PROFILE=\"{}\"", profile_name)
+        None => println!("export AWS_PROFILE={}", profile_name)
     }
 }

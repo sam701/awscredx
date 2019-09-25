@@ -1,17 +1,19 @@
-use std::path::{Path, PathBuf};
-use std::fmt::{self, Display, Formatter};
-use crate::config;
 use std::fs::{self, File};
 use std::io::prelude::*;
-use std::env;
+use std::{env, process};
+use std::process::Command;
 use crate::init::context::JobContext;
 
 mod context;
 
+const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub fn run() {
     let ctx = context::JobContext::new();
     if let Err(e) = run_jobs(&ctx) {
-        println!("{}: {}", ctx.styles.failure.paint("ERROR"), e);
+        eprintln!("{}: {}", ctx.styles.failure.paint("ERROR"), e);
+        process::exit(1);
     }
 }
 
@@ -22,9 +24,10 @@ macro_rules! job {
 }
 
 fn run_jobs(ctx: &JobContext) -> Result<(), String> {
+    ensure_tool_in_path()?;
     job!(create_config_dir, ctx);
     job!(create_config_file, ctx);
-    job!(copy_shell_scripts, ctx);
+    job!(write_shell_script, ctx);
     job!(set_up_script_sources, ctx);
     Ok(())
 }
@@ -49,6 +52,20 @@ fn print_report(report: &JobReport, context: &JobContext) {
             println!("{}", context.styles.success.paint("created")),
         JobStatus::WasAlreadyDone =>
             println!("{}", context.styles.already_done.paint("already exists")),
+    }
+}
+
+fn ensure_tool_in_path() -> Result<(), String> {
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg(format!("which {}", BINARY_NAME))
+        .output()
+        .expect("failed to run shell");
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(format!("{} is not in your PATH", BINARY_NAME))
     }
 }
 
@@ -79,24 +96,35 @@ fn create_config_file(ctx: &JobContext) -> Result<JobReport, String> {
     }
 }
 
-fn copy_shell_scripts(ctx: &JobContext) -> Result<JobReport, String> {
+fn write_shell_script(ctx: &JobContext) -> Result<JobReport, String> {
     let template_content = ctx.shell_script_content();
 
     let title = format!("Create shell script '{}'",
                         ctx.styles.path.paint(ctx.config_script.to_str().unwrap()));
-    let file = File::create(&ctx.config_script)
-        .map_err(|e| format!("cannot create configuration file {}: {}", ctx.config_script.display(), e))?;
-    write!(&file, "{}", template_content)
-        .map_err(|e| format!("cannot write configuration file: {}", e))?;
-    Ok(JobReport { title, status: JobStatus::Success })
+    if outdated_script() {
+        let file = File::create(&ctx.config_script)
+            .map_err(|e| format!("cannot create configuration file {}: {}", ctx.config_script.display(), e))?;
+        write!(&file, "{}", template_content)
+            .map_err(|e| format!("cannot write configuration file: {}", e))?;
+        Ok(JobReport { title, status: JobStatus::Success })
+    } else {
+        Ok(JobReport { title, status: JobStatus::WasAlreadyDone })
+    }
 }
 
-fn set_up_script_bash() -> Result<(), String> {
-    unimplemented!()
-}
+pub fn outdated_script() -> bool {
+    let shell = env::var("SHELL").expect("SHELL is empty");
 
-fn set_up_script_fish(config_dir: &str) -> Result<(), String> {
-    unimplemented!()
+    let output = Command::new(&shell)
+        .arg("-c")
+        .arg("echo $AWSCREDX_SCRIPT_VERSION")
+        .output()
+        .expect("failed to run shell");
+    let version = String::from_utf8(output.stdout)
+        .expect("sh output is not UTF-8");
+    let version_trimmed = version.trim();
+
+    version_trimmed != env!("CARGO_PKG_VERSION")
 }
 
 fn set_up_script_sources(ctx: &JobContext) -> Result<JobReport, String> {
@@ -109,7 +137,7 @@ fn set_up_script_sources(ctx: &JobContext) -> Result<JobReport, String> {
     };
 
     let title = format!("Add 'source {}' to {}",
-                        ctx.styles.path.paint(&home_based_config_path),
+                        &home_based_config_path,
                         ctx.styles.path.paint(ctx.shell_init_script.to_str().unwrap()));
     if must_attach {
         let shell_script_parent = ctx.shell_init_script.parent().unwrap();

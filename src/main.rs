@@ -9,7 +9,7 @@ extern crate chrono;
 extern crate ansi_term;
 extern crate linked_hash_map;
 
-use crate::config::{Config, Profile};
+use crate::config::Config;
 
 mod config;
 mod credentials;
@@ -18,7 +18,7 @@ mod assume;
 
 fn main() {
     let matches = clap::App::new("awscredx")
-        .version("0.1.0")
+        .version(env!("CARGO_PKG_VERSION"))
         .about("AWS credentials management, a.k.a. role assumption made easy")
         .subcommand(clap::SubCommand::with_name("assume")
             .about("Prints shell commands to assume the role for a given profile")

@@ -1,3 +1,7 @@
+export AWSCREDX_SCRIPT_VERSION="@version@"
 function assume {
-  $("@bin@" assume "$@")
+  out=$("@bin@" assume "$@")
+  if [[ $? == 0 ]]; then
+    $($out)
+  fi
 }

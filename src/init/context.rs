@@ -1,9 +1,7 @@
-use std::{env, fs};
+use std::env;
 use std::path::{Path, PathBuf};
 use crate::config;
 use ansi_term::{Style, Color};
-use std::hash::{Hash, Hasher};
-use std::collections::hash_map::DefaultHasher;
 
 pub struct JobContext {
     pub home_dir: String,
@@ -46,12 +44,9 @@ impl JobContext {
     }
 
     fn replace_template_placeholders(&self, template: &str) -> String {
-        let bin = env::args().next().unwrap();
-        let abs_bin = Path::new(&bin).canonicalize().expect("cannot create absolute path of the current awscredx binary");
-        let home_based = home_based_path(abs_bin.to_str().unwrap());
-
         template
-            .replace("@bin@", home_based.as_str())
+            .replace("@bin@", super::BINARY_NAME)
+            .replace("@version@", super::VERSION)
     }
 }
 
