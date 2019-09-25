@@ -1,23 +1,16 @@
-use std::collections::HashMap;
 use std::env;
 use std::fs;
 use serde::Deserialize;
 use crate::credentials::ProfileName;
 use std::io::stdin;
+use linked_hash_map::LinkedHashMap;
 
 #[cfg_attr(test, derive(Debug))]
 pub struct Config {
     main_profile: ProfileName,
     mfa_profile: ProfileName,
     mfa_serial_number: String,
-    pub profiles: HashMap<ProfileName, Profile>,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(untagged)]
-enum ProfileValue {
-    Arn(String),
-    ProfileConfig(Profile),
+    pub profiles: LinkedHashMap<ProfileName, Profile>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -57,10 +50,17 @@ impl Config {
         };
 
         #[derive(Deserialize, Debug)]
+        #[serde(untagged)]
+        enum ProfileValue {
+            Arn(String),
+            ProfileConfig(Profile),
+        }
+
+        #[derive(Deserialize, Debug)]
         struct RawConfig {
             main_profile: ProfileName,
             mfa_serial_number: String,
-            profiles: HashMap<ProfileName, ProfileValue>,
+            profiles: LinkedHashMap<ProfileName, ProfileValue>,
         }
 
         let rc: RawConfig = toml::from_str(&content)

@@ -7,6 +7,7 @@ extern crate serde;
 extern crate custom_error;
 extern crate chrono;
 extern crate ansi_term;
+extern crate linked_hash_map;
 
 use crate::config::{Config, Profile};
 
@@ -21,8 +22,7 @@ fn main() {
         .about("AWS credentials management, a.k.a. role assumption made easy")
         .subcommand(clap::SubCommand::with_name("assume")
             .about("Prints shell commands to assume the role for a given profile")
-            .arg(clap::Arg::with_name("profile")
-                .value_name("profile-name")
+            .arg(clap::Arg::with_name("profile-name")
                 .required(true)
                 .help("Profile name which role to assume")))
         .subcommand(clap::SubCommand::with_name("init")
@@ -32,8 +32,10 @@ fn main() {
         .get_matches();
 
     match matches.subcommand() {
-        ("assume", Some(arg)) =>
-            assume::run(arg.value_of("profile-name").unwrap()),
+        ("assume", Some(arg)) => {
+            let config = read_config();
+            assume::run(arg.value_of("profile-name").unwrap(), &config)
+        }
         ("init", _) =>
             init::run(),
         ("list-profiles", _) =>
@@ -54,9 +56,9 @@ fn read_config() -> Config {
         Ok(Some(config)) => config,
         Ok(None) => {
             println!("configuration file {} does not exist.\nRun 'awscredx init' to initialize your working environment.",
-                        config::CONFIG_FILE_PATH);
+                     config::CONFIG_FILE_PATH);
             ::std::process::exit(1);
-        },
+        }
         Err(e) => {
             println!("Cannot read config: {}", e);
             ::std::process::exit(2);
@@ -66,10 +68,11 @@ fn read_config() -> Config {
 
 fn print_profiles() {
     let c = read_config();
-    let mut pairs: Vec<(&str, &Profile)> = c.profiles.iter().map(|(n,p)| (n.as_ref(), p)).collect();
-    pairs.sort_by_key(|x| x.0);
-    for (name, prof) in pairs {
-        println!("{}", name);
-        println!("  {}", prof.role_arn);
+    let max_profile_name = c.profiles
+        .keys()
+        .map(|x| x.as_ref().len())
+        .max().unwrap();
+    for (name, prof) in c.profiles.iter() {
+        println!("{:width$}{}", name, &prof.role_arn, width = max_profile_name + 2);
     }
 }

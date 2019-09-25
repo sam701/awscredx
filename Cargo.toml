@@ -16,3 +16,4 @@ serde = { version = "1.0", features = ["derive", "rc"] }
 custom_error = "1.7"
 chrono = "*"
 ansi_term = "0.12"
+linked-hash-map = { version = "0.5", features = ["serde_impl"] }

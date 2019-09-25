@@ -16,7 +16,7 @@ pub struct CredentialsFile {
     profiles: Vec<CredentialsProfile>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Ord, PartialOrd)]
 #[serde(transparent)]
 pub struct ProfileName(Rc<String>);
 
@@ -28,15 +28,7 @@ impl ProfileName {
 
 impl Display for ProfileName {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        let has_spaces = self.0.contains(' ');
-        if has_spaces {
-            write!(f, "\"")?;
-        }
-        write!(f, "{}", self.0)?;
-        if has_spaces {
-            write!(f, "\"")?;
-        }
-        Ok(())
+        f.pad(&self.0)
     }
 }
 
@@ -58,7 +50,11 @@ const SESSION_TOKEN: &str = "aws_session_token";
 
 impl Display for CredentialsProfile {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        writeln!(f, "[{}]", &self.profile_name)?;
+        if self.profile_name.as_ref().contains(" ") {
+            writeln!(f, "[\"{}\"]", &self.profile_name)?;
+        } else {
+            writeln!(f, "[{}]", &self.profile_name)?;
+        }
         writeln!(f, "{} = {}", ACCESS_KEY_ID, self.credentials.aws_access_key_id())?;
         writeln!(f, "{} = {}", SECRET_ACCESS_KEY, self.credentials.aws_secret_access_key())?;
         if let Some(token) = self.credentials.token() {
@@ -121,12 +117,12 @@ impl CredentialsFile {
 
         let exp = expirations.0.get(&profile_name).cloned();
         match exp {
-            Some (ex) => {
+            Some(ex) => {
                 let now = Utc::now();
                 if now - ex > Duration::zero() {
                     return Ok(());
                 }
-            },
+            }
             None => {
                 if token.is_some() {
                     return Ok(());

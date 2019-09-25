@@ -1,3 +1,3 @@
 function assume
-  eval (@bin@ $argv)
+  eval ("@bin@" assume $argv)
 end

@@ -10,7 +10,7 @@
 # aws_secret_access_key = blabla
 main_profile = "main"
 
-# Copy this in AWS web console IAM
+# MFA serial number can be found in AWS web console -> IAM
 mfa_serial_number = "arn:aws:iam::MAIN_ACCOUNT_ID:mfa/USERNAME"
 
 [profiles]
