@@ -8,3 +8,5 @@ It will print what it has done.
 
 TODO: add a screenshot
 
+The `awscredx init` sets up a shell script with the function `assume`.
+In a new shell you can call `assume <profile name>` to assume the role from `<profile name>`. 
