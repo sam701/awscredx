@@ -38,7 +38,7 @@ fn print_profile(profile_name: &str) {
                 .file_name().unwrap()
                 .to_str().unwrap();
             match file {
-                "fish" => println!("set -x AWS_PROFILE {}", profile_name),
+                "fish" => println!("set -xg AWS_PROFILE {}", profile_name),
                 _ => println!("export AWS_PROFILE={}", profile_name),
             }
         }

@@ -13,6 +13,10 @@ main_profile = "main"
 # MFA serial number can be found in AWS web console -> IAM
 mfa_serial_number = "arn:aws:iam::MAIN_ACCOUNT_ID:mfa/USERNAME"
 
+# Uncomment and adjust the shell command if your MFA token can be provided by a script.
+# Here is an example for yubikey.
+# mfa_command = "ykman oath code | awk '/SOME_PATTERN/ {print $2}'"
+
 [profiles]
 
 # You can specify profiles by either providing the role ARNs

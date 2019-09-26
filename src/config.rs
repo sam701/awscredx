@@ -4,12 +4,14 @@ use serde::Deserialize;
 use crate::credentials::ProfileName;
 use std::io::stdin;
 use linked_hash_map::LinkedHashMap;
+use std::process::Command;
 
 #[cfg_attr(test, derive(Debug))]
 pub struct Config {
     main_profile: ProfileName,
     mfa_profile: ProfileName,
     mfa_serial_number: String,
+    mfa_command: Option<String>,
     pub profiles: LinkedHashMap<ProfileName, Profile>,
 }
 
@@ -60,6 +62,7 @@ impl Config {
         struct RawConfig {
             main_profile: ProfileName,
             mfa_serial_number: String,
+            mfa_command: Option<String>,
             profiles: LinkedHashMap<ProfileName, ProfileValue>,
         }
 
@@ -69,6 +72,7 @@ impl Config {
         let config = Config {
             main_profile: rc.main_profile,
             mfa_serial_number: rc.mfa_serial_number,
+            mfa_command: rc.mfa_command,
             mfa_profile: ProfileName::new(mfa),
             profiles: rc.profiles.into_iter().map(|(name, value)| (name, match value {
                 ProfileValue::Arn(role_arn) => Profile {
@@ -96,7 +100,7 @@ impl Config {
         let res = if profile == &self.mfa_profile {
             Some(AssumeSubject::MfaSession {
                 serial_number: self.mfa_serial_number.clone(),
-                token_code: read_token_code()?,
+                token_code: self.read_token_code()?,
             })
         } else {
             self.profiles.get(profile)
@@ -107,17 +111,39 @@ impl Config {
         };
         Ok(res)
     }
-}
 
-fn read_token_code() -> Result<String, String> {
-    eprint!("MFA token: ");
-    let mut s = String::with_capacity(10);
-    stdin().read_line(&mut s).map_err(|e| format!("cannot read MFA token: {}", e))?;
-    let trimmed = s.trim_end();
-    if trimmed.is_empty() {
-        return Err(format!("empty token"));
-    } else {
-        Ok(trimmed.to_owned())
+    fn read_token_code(&self) -> Result<String, String> {
+        match &self.mfa_command {
+            Some(cmd) => {
+                let output = Command::new("sh")
+                    .arg("-c")
+                    .arg(cmd)
+                    .output()
+                    .expect("failed to run shell");
+                let stdout_raw = String::from_utf8(output.stdout).expect("NOT UTF-8 input");
+                dbg!(&cmd);
+                dbg!(&output.status);
+                dbg!(&stdout_raw);
+
+                if output.status.success() {
+                    Ok(stdout_raw.trim().to_owned())
+                } else {
+                    let stderr_raw = String::from_utf8(output.stderr).expect("NOT UTF-8 input");
+                    Err(stdout_raw + &stderr_raw)
+                }
+            }
+            None => {
+                eprint!("MFA token: ");
+                let mut s = String::with_capacity(10);
+                stdin().read_line(&mut s).map_err(|e| format!("cannot read MFA token: {}", e))?;
+                let trimmed = s.trim_end();
+                if trimmed.is_empty() {
+                    return Err(format!("empty token"));
+                } else {
+                    Ok(trimmed.to_owned())
+                }
+            }
+        }
     }
 }
 
