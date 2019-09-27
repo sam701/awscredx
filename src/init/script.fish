@@ -5,7 +5,10 @@ set -x AWSCREDX_SCRIPT_VERSION "@version@"
 
 function assume
   set -l output ("@bin@" assume $argv)
-  if test $status -eq 0
+  set -l s $status
+  if test $s -eq 0
     eval "$output"
+  else
+    return $s
   end
 end

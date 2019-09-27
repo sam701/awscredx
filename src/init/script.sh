@@ -4,7 +4,10 @@
 export AWSCREDX_SCRIPT_VERSION="@version@"
 function assume {
   out=$("@bin@" assume "$@")
-  if [[ $? == 0 ]]; then
+  s=$?
+  if [[ $s == 0 ]]; then
     $out
+  else
+    return $s
   fi
 }
