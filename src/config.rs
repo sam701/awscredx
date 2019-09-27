@@ -8,8 +8,8 @@ use std::process::Command;
 
 #[cfg_attr(test, derive(Debug))]
 pub struct Config {
-    main_profile: ProfileName,
-    mfa_profile: ProfileName,
+    pub main_profile: ProfileName,
+    pub mfa_profile: ProfileName,
     mfa_serial_number: String,
     mfa_command: Option<String>,
     pub profiles: LinkedHashMap<ProfileName, Profile>,
@@ -61,6 +61,7 @@ impl Config {
         #[derive(Deserialize, Debug)]
         struct RawConfig {
             main_profile: ProfileName,
+            mfa_profile: Option<String>,
             mfa_serial_number: String,
             mfa_command: Option<String>,
             profiles: LinkedHashMap<ProfileName, ProfileValue>,
@@ -68,7 +69,7 @@ impl Config {
 
         let rc: RawConfig = toml::from_str(&content)
             .map_err(|e| format!("Cannot parse TOML file {}: {}", &path, e))?;
-        let mfa = format!("{}_mfa", &rc.main_profile);
+        let mfa = rc.mfa_profile.unwrap_or(format!("{}-mfa", &rc.main_profile));
         let config = Config {
             main_profile: rc.main_profile,
             mfa_serial_number: rc.mfa_serial_number,
@@ -113,6 +114,12 @@ impl Config {
     }
 
     fn read_token_code(&self) -> Result<String, String> {
+        let validate_code = |code: &str| if code.len() == 6 && code.chars().all(char::is_numeric) {
+            Ok(code.to_owned())
+        } else {
+            Err(format!("'{}' is not a valid MFA code", code))
+        };
+
         match &self.mfa_command {
             Some(cmd) => {
                 let output = Command::new("sh")
@@ -121,14 +128,16 @@ impl Config {
                     .output()
                     .expect("failed to run shell");
                 let stdout_raw = String::from_utf8(output.stdout).expect("NOT UTF-8 input");
-                dbg!(&cmd);
-                dbg!(&output.status);
-                dbg!(&stdout_raw);
+                let stderr_raw = String::from_utf8(output.stderr).expect("NOT UTF-8 input");
 
                 if output.status.success() {
-                    Ok(stdout_raw.trim().to_owned())
+                    let trimmed = stdout_raw.trim();
+                    if trimmed.is_empty() {
+                        Err(format!("cannot get MFA code\nResponse from MFA command:\n{}\n{}", &stdout_raw, &stderr_raw))
+                    } else {
+                        validate_code(trimmed)
+                    }
                 } else {
-                    let stderr_raw = String::from_utf8(output.stderr).expect("NOT UTF-8 input");
                     Err(stdout_raw + &stderr_raw)
                 }
             }
@@ -137,11 +146,7 @@ impl Config {
                 let mut s = String::with_capacity(10);
                 stdin().read_line(&mut s).map_err(|e| format!("cannot read MFA token: {}", e))?;
                 let trimmed = s.trim_end();
-                if trimmed.is_empty() {
-                    return Err(format!("empty token"));
-                } else {
-                    Ok(trimmed.to_owned())
-                }
+                validate_code(trimmed)
             }
         }
     }

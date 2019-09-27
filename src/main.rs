@@ -72,7 +72,10 @@ fn print_profiles() {
         .keys()
         .map(|x| x.as_ref().len())
         .max().unwrap();
+    let width = max_profile_name + 2;
+    println!("{:width$}Main profile", &c.main_profile, width = width);
+    println!("{:width$}Main profile MFA session", &c.mfa_profile, width = width);
     for (name, prof) in c.profiles.iter() {
-        println!("{:width$}{}", name, &prof.role_arn, width = max_profile_name + 2);
+        println!("{:width$}{}", name, &prof.role_arn, width = width);
     }
 }
