@@ -13,7 +13,7 @@ matrix:
       - BIN_SUFFIX=osx
 
 script:
-  - rustup toolchain list
+  - rustup target add $TARGET
   - cargo build --release --target $TARGET
 
 before_deploy:
