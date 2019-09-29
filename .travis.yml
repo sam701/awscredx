@@ -6,18 +6,22 @@ cache:
   directories:
     - target
 
-os:
-  - osx
+matrix:
+  include:
+    - env:
+      - TARGET=x86_64-apple-darwin
+      - BIN_SUFFIX=osx
 
 script:
-  - cargo build --release
+  - rustup toolchain list
+  - cargo build --release --target $TARGET
 
+before_deploy:
+  - cp target/release/awscredx awscredx-BIN_SUFFIX
 deploy:
   provider: releases
   api_key:
-    secure: bEDA8HUNOFolMBLi5y/gnWez8Z7u+DugOImdxgGP5C7SIWK45EgokOUsjWES5tyuP6oFbW3GPicCK3lgVU22C3EL8FYIUzy7bM7bgbVWFWkIUJYj60EPvncZzKDnlcQCEjwIeYVtN/wh31W4If7A7NYBL5/3/VlAA0nI48xM+gFEp/hGSk08km+Tu7i/yHlDzTRwKThpLZgG0Lj1Z6LOIYJXznhNMUSVULW1wJdZ5zzzajHd/9Ff+gZVAwaYiKE7qY7hO7xfq6LvV5atY+DSwxCaQ6skF1YH1vUYU/rM7o1gGpkxYRziWedQzfO1gGB2iSjUEbe8qfyyO8CoIHR8TUdb99Ymmhi6Lg/IlQMtHNFxNBxkhhbkF2Xn5MREUpWlyVFf7VvsrvEfxIBe1MIhto9iK2Rega6Y1Jh7fVaRbO0L8w9tW4bSteMJPizdffdU3vVq5U6N4c120nnZIbido5gGpPKkGl44/Lzx8riXZ08cHRQUEFHawJm9l6Kh52zxp6mYhBM1MmU4+LnG12d/EC4/puySu+70tpWniNNcsZ83bRm/g/L4zkc4HF/4OHj19YsaWDT4qL4Y5UaTeh39/S2O3j/Ntjdw/anSpkzdX5YvvX35cbpjjUk8OnXthNAvH3WJzTniKEx2h4JDF7rn6hJgBq71Iso5FiHNJ2JvyLM=
-  file:
-    - target/release/awscredx
-  skip_cleanup: true
+    secure: g/9VsgtUeDRpkT7RLYHXljSQrVnvdpQ05oD7A9rqh/mh3Fbc4MA1YWjT4bzk0b7lmNQoWkMmIVTqHNl3JQ2RkopOufoUr8dt8DzUWzrflRm1otS9XmmoCrnprzSZlVE+xsj5MRWa7Jmsg4Uvazge90XQf6mhTUszmOpjdD9im/k1frxlQaLJVw3I0kOeFGN9gHJZVOZe7GkxGDkTawAJiEzkrRnMvowkxhr/NMGvMbrOmYK7z9G1sF+cJjwPZkzvPsBW3kXBnsYgBx8C4U3ImhfuRpH/qncrLRQmx7Hdj68FKpSr8ns9iufZqxfAbnO0KQVlnxLP7L60SQNLJbVQSxA0jKjnKAc/JVFtoofxJ7MBxgSeuX9B1Tnqk0XUR7iXljX+Dj7fNMHgyrQ4TBQX+KZEdHVEi5+yCRxNGfqHrwyKcvreihxnMJ0Xjfmgd651xrLTgs3XmBYepv8VSjyNc3KTkl9MnifKhWL2HMQqcYdah49LXpGsz9T+aI473L2mhbT35ToRsniye6xv5XjLl3GRWGcoiCJTddMbOf35qjkavyeBg91s8M/DkgEojr0KhG7WdgkOCbCtg3cdZrvLTMIh7GKpCjeVC3B8d7gO1Mh6FCjyFgJDQX+4bIaqRUpUh85Y6nDJSRLMfP2djwcU2WWmeqG6q/EDFf44qKVlEXg=
+  file: awscredx-$BIN_SUFFIX
   on:
     tags: true
