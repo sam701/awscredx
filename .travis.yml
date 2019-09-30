@@ -2,26 +2,18 @@ language: rust
 rust:
   - stable
 
-cache:
-  directories:
-    - target
-
-matrix:
-  include:
-    - env:
-      - TARGET=x86_64-apple-darwin
-      - BIN_SUFFIX=osx
+os:
+  - osx
 
 script:
-  - rustup target add $TARGET
-  - cargo build --release --target $TARGET
+  - cargo build --release
 
 before_deploy:
-  - cp target/release/awscredx awscredx-BIN_SUFFIX
+  - mv target/release/awscredx awscredx-${TRAVIS_OS_NAME}
 deploy:
   provider: releases
   api_key:
     secure: g/9VsgtUeDRpkT7RLYHXljSQrVnvdpQ05oD7A9rqh/mh3Fbc4MA1YWjT4bzk0b7lmNQoWkMmIVTqHNl3JQ2RkopOufoUr8dt8DzUWzrflRm1otS9XmmoCrnprzSZlVE+xsj5MRWa7Jmsg4Uvazge90XQf6mhTUszmOpjdD9im/k1frxlQaLJVw3I0kOeFGN9gHJZVOZe7GkxGDkTawAJiEzkrRnMvowkxhr/NMGvMbrOmYK7z9G1sF+cJjwPZkzvPsBW3kXBnsYgBx8C4U3ImhfuRpH/qncrLRQmx7Hdj68FKpSr8ns9iufZqxfAbnO0KQVlnxLP7L60SQNLJbVQSxA0jKjnKAc/JVFtoofxJ7MBxgSeuX9B1Tnqk0XUR7iXljX+Dj7fNMHgyrQ4TBQX+KZEdHVEi5+yCRxNGfqHrwyKcvreihxnMJ0Xjfmgd651xrLTgs3XmBYepv8VSjyNc3KTkl9MnifKhWL2HMQqcYdah49LXpGsz9T+aI473L2mhbT35ToRsniye6xv5XjLl3GRWGcoiCJTddMbOf35qjkavyeBg91s8M/DkgEojr0KhG7WdgkOCbCtg3cdZrvLTMIh7GKpCjeVC3B8d7gO1Mh6FCjyFgJDQX+4bIaqRUpUh85Y6nDJSRLMfP2djwcU2WWmeqG6q/EDFf44qKVlEXg=
-  file: awscredx-$BIN_SUFFIX
+  file: awscredx-${TRAVIS_OS_NAME}
   on:
     tags: true
