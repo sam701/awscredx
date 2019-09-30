@@ -11,8 +11,12 @@ script:
 
 before_deploy:
   - mkdir -p target/deploy
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install zip ; fi
-  - cd target/release; zip ../deploy/awscredx-${TRAVIS_OS_NAME}.zip awscredx; cd ../..
+  - |
+    if [ "$TRAVIS_OS_NAME" = "windows" ]; then
+      choco install zip
+      file_suffix=".exe"
+    fi
+  - cd target/release; zip ../deploy/awscredx-${TRAVIS_OS_NAME}.zip awscredx$file_suffix; cd ../..
   - ls -la target/deploy
 deploy:
   provider: releases
