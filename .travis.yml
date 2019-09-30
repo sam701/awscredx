@@ -4,6 +4,7 @@ rust:
 
 os:
   - osx
+  - windows
 
 script:
   - cargo build --release
