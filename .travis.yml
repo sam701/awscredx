@@ -11,7 +11,7 @@ script:
 
 before_deploy:
   - mkdir -p target/deploy
-  - mv target/release/awscredx target/deploy/awscredx-$TRAVIS_OS_NAME
+  - cd target/release; zip ../deploy/awscredx-${TRAVIS_OS_NAME}.zip awscredx; cd ../..
   - ls -la target/deploy
 deploy:
   provider: releases
