@@ -15,7 +15,8 @@ matrix:
       if: tag IS present
 
 script:
-  - cargo build --release
+  - if [[ $TRAVIS_TAG != "" ]]; then args=--release; fi
+  - cargo build $args
 
 before_deploy:
   - mkdir -p target/deploy
