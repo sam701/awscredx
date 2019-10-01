@@ -2,9 +2,13 @@ language: rust
 rust:
   - stable
 
-os:
-  - osx
-  - windows
+matrix:
+  include:
+    - os: linux
+    - os: osx
+      if: tag IS present
+    - os: windows
+      if: tag IS present
 
 script:
   - cargo build --release

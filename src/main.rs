@@ -16,9 +16,11 @@ mod credentials;
 mod init;
 mod assume;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn main() {
     let matches = clap::App::new("awscredx")
-        .version(env!("CARGO_PKG_VERSION"))
+        .version(VERSION)
         .about("AWS credentials management, a.k.a. role assumption made easy")
         .subcommand(clap::SubCommand::with_name("assume")
             .about("Prints shell commands to assume the role for a given profile")

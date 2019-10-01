@@ -1,4 +1,6 @@
 # AWSCREDX
+[![Build Status](https://travis-ci.org/sam701/awscredx.svg?branch=master)](https://travis-ci.org/sam701/awscredx)
+
 Assume AWS roles under the motto "don't make me think".
 `awscredx` has a goal to make the role assumption on the command line simple and intuitive.
 
