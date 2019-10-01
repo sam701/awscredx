@@ -2,6 +2,10 @@ language: rust
 rust:
   - stable
 
+cache:
+  directories:
+    - target
+
 matrix:
   include:
     - os: linux
