@@ -2,9 +2,7 @@ language: rust
 rust:
   - stable
 
-cache:
-  directories:
-    - target
+cache: cargo
 
 matrix:
   include:
@@ -15,8 +13,12 @@ matrix:
       if: tag IS present
 
 script:
-  - if [[ $TRAVIS_TAG != "" ]]; then args=--release; fi
-  - cargo build $args
+  - |
+    if [[ $TRAVIS_TAG == "" ]]; then
+      cargo build
+    else
+      cargo build --release
+    fi
 
 before_deploy:
   - mkdir -p target/deploy
