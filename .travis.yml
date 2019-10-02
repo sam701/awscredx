@@ -19,10 +19,7 @@ jobs:
     - stage: release
       name: linux
       os: linux
-      script: &script-unix
-        - cargo build --release
-        - mkdir -p target/deploy
-        - cd target/release; zip ../deploy/awscredx-${TRAVIS_OS_NAME}.zip awscredx
+      script: ./.travis-release.sh
       deploy: &deploy
         provider: releases
         api_key:
@@ -35,14 +32,14 @@ jobs:
 
     - name: osx
       os: osx
-      script: *script-unix
+      script: ./.travis-release.sh
       deploy: *deploy
 
     - name: windows
       os: windows
+      env:
+        - exe_suffix=.exe
       script:
-        - cargo build --release
-        - mkdir -p target/deploy
         - choco install zip
-        - cd target/release; zip ../deploy/awscredx-${TRAVIS_OS_NAME}.zip awscredx.exe
+        - ./.travis-release.sh
       deploy: *deploy
