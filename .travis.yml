@@ -19,6 +19,8 @@ jobs:
     - stage: release
       name: linux
       os: linux
+      env:
+        - exe_suffix=""
       script: ./.travis-release.sh
       deploy: &deploy
         provider: releases
@@ -32,6 +34,8 @@ jobs:
 
     - name: osx
       os: osx
+      env:
+        - exe_suffix=""
       script: ./.travis-release.sh
       deploy: *deploy
 
