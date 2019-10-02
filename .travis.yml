@@ -30,6 +30,8 @@ jobs:
         file_glob: true
         file: target/deploy/*
         skip_cleanup: true
+        on:
+          tags: true
 
     - name: osx
       os: osx
