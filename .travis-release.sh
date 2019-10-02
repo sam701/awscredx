@@ -4,7 +4,7 @@ set -eu
 
 cargo build --release
 
-rm -r target/deploy
+rm -rf target/deploy
 mkdir -p target/deploy
 
 cd target/release
