@@ -8,6 +8,7 @@ extern crate custom_error;
 extern crate chrono;
 extern crate ansi_term;
 extern crate linked_hash_map;
+extern crate reqwest;
 
 use crate::config::Config;
 
@@ -15,12 +16,11 @@ mod config;
 mod credentials;
 mod init;
 mod assume;
-
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+mod version;
 
 fn main() {
     let matches = clap::App::new("awscredx")
-        .version(VERSION)
+        .version(version::VERSION)
         .about("AWS credentials management, a.k.a. role assumption made easy")
         .subcommand(clap::SubCommand::with_name("assume")
             .about("Prints shell commands to assume the role for a given profile")
@@ -31,6 +31,8 @@ fn main() {
             .about("Initializes local environment"))
         .subcommand(clap::SubCommand::with_name("list-profiles")
             .about("Lists configured profiles with their role ARNs"))
+        .subcommand(clap::SubCommand::with_name("version")
+            .about("Shows current version and checks new available versions"))
         .get_matches();
 
     match matches.subcommand() {
@@ -42,6 +44,8 @@ fn main() {
             init::run(),
         ("list-profiles", _) =>
             print_profiles(),
+        ("version", _) =>
+            version::print_version(),
         _ => print_first_time_message()
     }
 }

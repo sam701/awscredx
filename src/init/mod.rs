@@ -6,8 +6,7 @@ use crate::init::context::JobContext;
 
 mod context;
 
-const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
 
 pub fn run() {
     let ctx = context::JobContext::new();
@@ -124,7 +123,7 @@ pub fn outdated_script() -> bool {
         .expect("sh output is not UTF-8");
     let version_trimmed = version.trim();
 
-    version_trimmed != env!("CARGO_PKG_VERSION")
+    version_trimmed != crate::version::VERSION
 }
 
 fn set_up_script_sources(ctx: &JobContext) -> Result<JobReport, String> {

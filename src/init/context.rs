@@ -46,7 +46,7 @@ impl JobContext {
     fn replace_template_placeholders(&self, template: &str) -> String {
         template
             .replace("@bin@", super::BINARY_NAME)
-            .replace("@version@", super::VERSION)
+            .replace("@version@", crate::version::VERSION)
     }
 }
 
