@@ -15,12 +15,13 @@ pub fn run(profile: &str, config: &Config) {
             let err_style = Style::new().fg(Color::Red).bold();
             eprintln!("{}: {}", err_style.paint("ERROR"), e);
             process::exit(1);
-        },
+        }
     }
 }
 
 fn run_raw(profile: &str, config: &Config) -> Result<(), String> {
     let cred_file = CredentialsFile::read_default()?;
+    let should_check_newer_version = config.check_new_version && cred_file.get_credentials(&config.mfa_profile).is_none();
     let mut assumer = RoleAssumer::new(
         Region::EuCentral1,
         cred_file,
@@ -28,7 +29,19 @@ fn run_raw(profile: &str, config: &Config) -> Result<(), String> {
     );
     assumer.assume(profile)?;
     print_profile(profile);
+    if should_check_newer_version {
+        check_newer_version()
+    }
     Ok(())
+}
+
+fn check_newer_version() {
+    match crate::version::check_new_version() {
+        Ok(Some(pv)) => eprintln!("{}", &pv),
+        Ok(None) => {}
+        Err(e) => eprintln!("{}: cannot check for newer version: {}",
+                            Style::new().fg(Color::Red).bold().paint("ERROR"), e)
+    }
 }
 
 fn print_profile(profile_name: &str) {

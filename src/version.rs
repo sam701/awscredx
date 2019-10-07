@@ -1,6 +1,7 @@
 use reqwest;
 use serde::Deserialize;
 use ansi_term::{Style, Color};
+use std::fmt::{self, Display};
 
 #[derive(Deserialize)]
 struct GithubVersion {
@@ -15,10 +16,22 @@ struct Asset {
     browser_download_url: String,
 }
 
-struct PublishedVersion {
+pub struct PublishedVersion {
     tag_name: String,
     html_url: String,
     binary_download_url: String,
+}
+
+impl Display for PublishedVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        f.pad("")?;
+        writeln!(f, "New version {} is available.",
+                 Style::new().fg(Color::Yellow).bold().paint(&self.tag_name))?;
+        f.pad("")?;
+        writeln!(f, "Release nodes: {}", &self.html_url)?;
+        f.pad("")?;
+        writeln!(f, "Binary download URL: {}", &self.binary_download_url)
+    }
 }
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -26,13 +39,8 @@ const TRAVIS_OS_NAME_OPT: Option<&str> = option_env!("TRAVIS_OS_NAME");
 
 pub fn print_version() {
     println!("awscredx {}", Style::new().fg(Color::White).bold().paint(VERSION));
-
     match check_new_version() {
-        Ok(Some(pv)) =>
-            println!("  New version {} is available.\n  Release notes: {}\n  Binary download URL: {}",
-                     Style::new().fg(Color::Yellow).bold().paint(&pv.tag_name),
-                     &pv.html_url,
-                     &pv.binary_download_url),
+        Ok(Some(pv)) => println!("{:>2}", &pv),
         Ok(None) => {}
         Err(e) => println!("{}: {}",
                            Style::new().fg(Color::Red).bold().paint("ERROR"), e)
@@ -43,7 +51,7 @@ fn os_name() -> &'static str {
     TRAVIS_OS_NAME_OPT.unwrap_or("osx")
 }
 
-fn check_new_version() -> Result<Option<PublishedVersion>, String> {
+pub fn check_new_version() -> Result<Option<PublishedVersion>, String> {
     let github_version: GithubVersion = reqwest::get("https://api.github.com/repos/sam701/awscredx/releases/latest")
         .map_err(|e| format!("cannot check new version: {}", e))?
         .json()

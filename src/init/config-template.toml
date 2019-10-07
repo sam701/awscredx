@@ -10,9 +10,11 @@
 # aws_secret_access_key = blabla
 main_profile = "main"
 
-# MFA profile name
-# By default it is '<main_profile>-mfa'
+# MFA profile name. Default is '<main_profile>-mfa'.
 # mfa_profile = "mfa"
+
+# If it should be checked for new version.
+check_new_version = true
 
 # MFA serial number can be found in AWS web console -> IAM
 mfa_serial_number = "arn:aws:iam::MAIN_ACCOUNT_ID:mfa/USERNAME"

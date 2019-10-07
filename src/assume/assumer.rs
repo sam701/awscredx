@@ -11,7 +11,7 @@ pub struct RoleAssumer<'a> {
     config: &'a Config,
 }
 
-pub struct Cred {
+struct Cred {
     key: String,
     secret: String,
     token: Option<String>,
