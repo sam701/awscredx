@@ -11,6 +11,7 @@ extern crate linked_hash_map;
 extern crate reqwest;
 
 use crate::config::Config;
+use ansi_term::{Color, Style};
 
 mod config;
 mod credentials;
@@ -21,7 +22,9 @@ mod version;
 fn main() {
     let matches = clap::App::new("awscredx")
         .version(version::VERSION)
-        .about("AWS credentials management, a.k.a. role assumption made easy")
+        .about(format!(r#"AWS credentials management, a.k.a. role assumption made easy.
+Run '{}' to create the configuration file and set up shell scripts."#,
+                       Style::new().fg(Color::Yellow).paint("awscredx init")).as_str())
         .subcommand(clap::SubCommand::with_name("assume")
             .about("Prints shell commands to assume the role for a given profile")
             .arg(clap::Arg::with_name("profile-name")
@@ -32,7 +35,8 @@ fn main() {
         .subcommand(clap::SubCommand::with_name("list-profiles")
             .about("Lists configured profiles with their role ARNs"))
         .subcommand(clap::SubCommand::with_name("version")
-            .about("Shows current version and checks new available versions"))
+            .about("Shows current version and checks for newer version"))
+        .setting(clap::AppSettings::SubcommandRequiredElseHelp)
         .get_matches();
 
     match matches.subcommand() {
@@ -46,15 +50,8 @@ fn main() {
             print_profiles(),
         ("version", _) =>
             version::print_version(),
-        _ => print_first_time_message()
+        _ => unreachable!(),
     }
-}
-
-fn print_first_time_message() {
-    println!(r#"Welcome to awscredx!
-
-It seems you are running this command for the first time.
-Call 'awscredx init' to create the configuration file template and setup a shell helper function."#);
 }
 
 fn read_config() -> Config {
