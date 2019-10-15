@@ -1,6 +1,6 @@
 [package]
 name = "awscredx"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Alexei Samokvalov <alexei@sam701.com>"]
 edition = "2018"
 

@@ -153,7 +153,7 @@ fn set_up_script_sources(ctx: &JobContext) -> Result<JobReport, String> {
 
     let must_attach = match fs::read_to_string(&ctx.shell_init_script) {
         Ok(content) => content.lines().find(|line| line.starts_with(&source_line)).is_none(),
-        Err(_) => false,
+        Err(_) => true,
     };
 
     let title = format!("Add 'source {}' to {}",
