@@ -13,7 +13,7 @@ pub struct Config {
     mfa_serial_number: String,
     mfa_command: Option<String>,
     pub profiles: LinkedHashMap<ProfileName, Profile>,
-    pub check_new_version: bool,
+    pub check_new_version_interval_days: u32,
 }
 
 #[derive(Deserialize, Debug)]
@@ -66,7 +66,7 @@ impl Config {
             mfa_serial_number: String,
             mfa_command: Option<String>,
             profiles: LinkedHashMap<ProfileName, ProfileValue>,
-            check_new_version: Option<bool>,
+            check_new_version_interval_days: Option<u32>,
         }
 
         let rc: RawConfig = toml::from_str(&content)
@@ -86,7 +86,7 @@ impl Config {
                 },
                 ProfileValue::ProfileConfig(profile) => profile,
             })).collect(),
-            check_new_version: rc.check_new_version.unwrap_or(true),
+            check_new_version_interval_days: rc.check_new_version_interval_days.unwrap_or(7),
         };
         Ok(Some(config))
     }

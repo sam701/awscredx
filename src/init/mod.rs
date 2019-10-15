@@ -1,9 +1,9 @@
-use std::fs::{self, File, Permissions};
+use std::fs::{self, File};
 use std::io::prelude::*;
 use std::{env, process};
 use std::process::Command;
 use crate::init::context::JobContext;
-use std::path::PathBuf;
+use crate::util;
 
 mod context;
 
@@ -25,11 +25,14 @@ macro_rules! job {
 
 fn run_jobs(ctx: &JobContext) -> Result<(), String> {
     ensure_tool_in_path()?;
+
     job!(create_config_dir, ctx);
-    job!(create_data_home_dir, ctx);
     job!(create_config_file, ctx);
+
+    job!(create_data_home_dir, ctx);
     job!(write_shell_script, ctx);
     job!(set_up_script_sources, ctx);
+
     Ok(())
 }
 
@@ -78,7 +81,7 @@ fn create_config_dir(ctx: &JobContext) -> Result<JobReport, String> {
     } else {
         fs::create_dir_all(&ctx.config_dir)
             .map_err(|e| format!("cannot create directory {}: {}", ctx.config_dir.display(), e))?;
-        set_permissions(&ctx.config_dir, 0o700);
+        util::set_permissions(&ctx.config_dir, 0o700);
         Ok(JobReport { title, status: JobStatus::Success })
     }
 }
@@ -91,19 +94,10 @@ fn create_data_home_dir(ctx: &JobContext) -> Result<JobReport, String> {
     } else {
         fs::create_dir_all(&ctx.data_dir)
             .map_err(|e| format!("cannot create directory {}: {}", ctx.data_dir.display(), e))?;
-        set_permissions(&ctx.data_dir, 0o700);
+        util::set_permissions(&ctx.data_dir, 0o700);
         Ok(JobReport { title, status: JobStatus::Success })
     }
 }
-
-#[cfg(target_family = "unix")]
-fn set_permissions(path: &PathBuf, mode: u32) {
-    use std::os::unix::fs::PermissionsExt;
-    fs::set_permissions(path, Permissions::from_mode(mode)).expect("set file permissions");
-}
-
-#[cfg(target_family = "windows")]
-fn set_permissions(path: &PathBuf, mode: u32) {}
 
 fn create_config_file(ctx: &JobContext) -> Result<JobReport, String> {
     let title = format!("Create configuration file '{}'",
@@ -116,7 +110,7 @@ fn create_config_file(ctx: &JobContext) -> Result<JobReport, String> {
         let content = include_str!("config-template.toml");
         write!(&file, "{}", content)
             .map_err(|e| format!("cannot write configuration file: {}", e))?;
-        set_permissions(&ctx.config_file, 0o600);
+        util::set_permissions(&ctx.config_file, 0o600);
         Ok(JobReport { title, status: JobStatus::Success })
     }
 }
@@ -129,7 +123,7 @@ fn write_shell_script(ctx: &JobContext) -> Result<JobReport, String> {
     if outdated_script() {
         let file = File::create(&ctx.shell_config_script)
             .map_err(|e| format!("cannot create configuration file {}: {}", ctx.shell_config_script.display(), e))?;
-        set_permissions(&ctx.shell_config_script, 0o600);
+        util::set_permissions(&ctx.shell_config_script, 0o600);
         write!(&file, "{}", template_content)
             .map_err(|e| format!("cannot write configuration file: {}", e))?;
         Ok(JobReport { title, status: JobStatus::Success })

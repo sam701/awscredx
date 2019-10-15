@@ -13,8 +13,8 @@ main_profile = "main"
 # MFA profile name. Default is '<main_profile>-mfa'.
 # mfa_profile = "mfa"
 
-# If it should be checked for new version.
-check_new_version = true
+# How often to check for new version.
+check_new_version_interval_days = 7
 
 # MFA serial number can be found in AWS web console -> IAM
 mfa_serial_number = "arn:aws:iam::MAIN_ACCOUNT_ID:mfa/USERNAME"

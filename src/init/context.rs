@@ -1,16 +1,18 @@
 use std::env;
 use std::path::{Path, PathBuf};
-use crate::config;
+use crate::{config, util};
 use ansi_term::{Style, Color};
 
 pub struct JobContext {
     pub home_dir: String,
     pub shell: String,
-    pub shell_config_script: PathBuf,
-    pub shell_init_script: PathBuf,
+
     pub config_dir: PathBuf,
     pub config_file: PathBuf,
+
     pub data_dir: PathBuf,
+    pub shell_config_script: PathBuf,
+    pub shell_init_script: PathBuf,
 
     pub styles: Styles,
 }
@@ -19,7 +21,7 @@ impl JobContext {
     pub fn new() -> Self {
         let home_dir = env::var("HOME").expect("HOME is not set");
         let shell = current_shell();
-        let config_file = path_to_absolute(config::CONFIG_FILE_PATH);
+        let config_file = util::path_to_absolute(config::CONFIG_FILE_PATH);
         let config_dir = config_file.parent().unwrap().to_path_buf();
         let data_dir = Path::new(&home_dir).join(".local/share/awscredx").to_path_buf();
         let shell_config_script = data_dir.join(shell_script(&shell)).to_path_buf();
@@ -76,12 +78,12 @@ fn shell_init_script_path(shell: &str) -> PathBuf {
         "~/.profile"
     ];
     let mut abs_bash: Vec<PathBuf> = bash_files.iter()
-        .map(|x| path_to_absolute(x)).collect();
+        .map(|x| util::path_to_absolute(x)).collect();
     let bash_file_index = first_file_that_exists_index(&abs_bash)
         .unwrap_or(0);
     match shell {
-        "fish" => path_to_absolute("~/.config/fish/config.fish"),
-        "zsh" => path_to_absolute("~/.zshrc"),
+        "fish" => util::path_to_absolute("~/.config/fish/config.fish"),
+        "zsh" => util::path_to_absolute("~/.zshrc"),
         _ => abs_bash.remove(bash_file_index),
     }
 }
@@ -96,12 +98,6 @@ fn shell_script(shell: &str) -> &str {
 fn first_file_that_exists_index(paths: &[PathBuf]) -> Option<usize> {
     paths.iter()
         .position(|p| p.exists())
-}
-
-fn path_to_absolute(path: &str) -> PathBuf {
-    let home = env::var("HOME").expect("HOME is not set");
-    let abs = path.replace("~", &home).replace("$HOME", &home);
-    PathBuf::from(abs)
 }
 
 pub fn home_based_path(path: &str) -> String {

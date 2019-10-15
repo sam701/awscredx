@@ -14,10 +14,12 @@ use crate::config::Config;
 use ansi_term::{Color, Style};
 
 mod config;
+mod state;
 mod credentials;
 mod init;
 mod assume;
 mod version;
+mod util;
 
 fn main() {
     let matches = clap::App::new("awscredx")
