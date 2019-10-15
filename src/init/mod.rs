@@ -33,6 +33,10 @@ fn run_jobs(ctx: &JobContext) -> Result<(), String> {
     job!(write_shell_script, ctx);
     job!(set_up_script_sources, ctx);
 
+    println!("\nNow edit configuration file {},\nthen open a new terminal and assume a role by calling '{}'",
+             ctx.styles.path.paint(ctx.config_file.to_str().unwrap()),
+             ctx.styles.path.paint("assume <profile-from-your-config>"));
+
     Ok(())
 }
 
