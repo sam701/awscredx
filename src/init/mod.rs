@@ -1,8 +1,9 @@
-use std::fs::{self, File};
+use std::fs::{self, File, Permissions};
 use std::io::prelude::*;
 use std::{env, process};
 use std::process::Command;
 use crate::init::context::JobContext;
+use std::path::PathBuf;
 
 mod context;
 
@@ -25,6 +26,7 @@ macro_rules! job {
 fn run_jobs(ctx: &JobContext) -> Result<(), String> {
     ensure_tool_in_path()?;
     job!(create_config_dir, ctx);
+    job!(create_data_home_dir, ctx);
     job!(create_config_file, ctx);
     job!(write_shell_script, ctx);
     job!(set_up_script_sources, ctx);
@@ -76,21 +78,45 @@ fn create_config_dir(ctx: &JobContext) -> Result<JobReport, String> {
     } else {
         fs::create_dir_all(&ctx.config_dir)
             .map_err(|e| format!("cannot create directory {}: {}", ctx.config_dir.display(), e))?;
+        set_permissions(&ctx.config_dir, 0o700);
         Ok(JobReport { title, status: JobStatus::Success })
     }
 }
 
-fn create_config_file(ctx: &JobContext) -> Result<JobReport, String> {
-    let title = format!("Create configuration file '{}'",
-                        ctx.styles.path.paint(ctx.config_script.to_str().unwrap()));
-    if ctx.config_script.exists() {
+fn create_data_home_dir(ctx: &JobContext) -> Result<JobReport, String> {
+    let title = format!("Create data directory '{}'",
+                        ctx.styles.path.paint(ctx.data_dir.to_str().unwrap()));
+    if ctx.data_dir.exists() {
         Ok(JobReport { title, status: JobStatus::WasAlreadyDone })
     } else {
-        let file = File::create(&ctx.config_script)
-            .map_err(|e| format!("cannot create configuration file {}: {}", ctx.config_script.display(), e))?;
+        fs::create_dir_all(&ctx.data_dir)
+            .map_err(|e| format!("cannot create directory {}: {}", ctx.data_dir.display(), e))?;
+        set_permissions(&ctx.data_dir, 0o700);
+        Ok(JobReport { title, status: JobStatus::Success })
+    }
+}
+
+#[cfg(target_family = "unix")]
+fn set_permissions(path: &PathBuf, mode: u32) {
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(path, Permissions::from_mode(mode)).expect("set file permissions");
+}
+
+#[cfg(target_family = "windows")]
+fn set_permissions(path: &PathBuf, mode: u32) {}
+
+fn create_config_file(ctx: &JobContext) -> Result<JobReport, String> {
+    let title = format!("Create configuration file '{}'",
+                        ctx.styles.path.paint(ctx.config_file.to_str().unwrap()));
+    if ctx.config_file.exists() {
+        Ok(JobReport { title, status: JobStatus::WasAlreadyDone })
+    } else {
+        let file = File::create(&ctx.config_file)
+            .map_err(|e| format!("cannot create configuration file {}: {}", ctx.config_file.display(), e))?;
         let content = include_str!("config-template.toml");
         write!(&file, "{}", content)
             .map_err(|e| format!("cannot write configuration file: {}", e))?;
+        set_permissions(&ctx.config_file, 0o600);
         Ok(JobReport { title, status: JobStatus::Success })
     }
 }
@@ -99,10 +125,11 @@ fn write_shell_script(ctx: &JobContext) -> Result<JobReport, String> {
     let template_content = ctx.shell_script_content();
 
     let title = format!("Create shell script '{}'",
-                        ctx.styles.path.paint(ctx.config_script.to_str().unwrap()));
+                        ctx.styles.path.paint(ctx.shell_config_script.to_str().unwrap()));
     if outdated_script() {
-        let file = File::create(&ctx.config_script)
-            .map_err(|e| format!("cannot create configuration file {}: {}", ctx.config_script.display(), e))?;
+        let file = File::create(&ctx.shell_config_script)
+            .map_err(|e| format!("cannot create configuration file {}: {}", ctx.shell_config_script.display(), e))?;
+        set_permissions(&ctx.shell_config_script, 0o600);
         write!(&file, "{}", template_content)
             .map_err(|e| format!("cannot write configuration file: {}", e))?;
         Ok(JobReport { title, status: JobStatus::Success })
@@ -127,7 +154,7 @@ pub fn outdated_script() -> bool {
 }
 
 fn set_up_script_sources(ctx: &JobContext) -> Result<JobReport, String> {
-    let home_based_config_path = context::home_based_path(ctx.config_script.to_str().unwrap());
+    let home_based_config_path = context::home_based_path(ctx.shell_config_script.to_str().unwrap());
     let source_line = format!("source {}", &home_based_config_path);
 
     let must_attach = match fs::read_to_string(&ctx.shell_init_script) {
