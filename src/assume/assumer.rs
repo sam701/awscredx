@@ -4,6 +4,7 @@ use rusoto_credential::{AwsCredentials, StaticProvider};
 use crate::config::{Config, AssumeSubject};
 use crate::credentials::{ProfileName, CredentialsFile};
 use std::error::Error;
+use chrono::{Utc, Duration};
 
 pub struct RoleAssumer<'a> {
     region: Region,
@@ -44,23 +45,26 @@ impl<'a> RoleAssumer<'a> {
 
     fn profile_credentials(&mut self, profile: &ProfileName) -> Result<Cred, String> {
         match self.store.get_credentials(&profile) {
-            Some(cred) => {
-                Ok(cred.into())
-            },
-            None => {
-                let parent = self.config.parent_profile(profile)
-                    .ok_or(format!("profile '{}' does not exist", &profile))?
-                    .clone();
-                let parent_cred = self.profile_credentials(&parent)?;
-                let sub = self.config.assume_subject(profile)?
-                    .ok_or(format!("cannot get assume subject for profile {}", profile))?;
-                let parent_client = create_client(parent_cred, self.region.clone());
-                let new_cred= assume_subject(&parent_client, sub)?;
-                let out_cred = (&new_cred).into();
-                self.store.put_credentials(profile.clone(), new_cred);
-                Ok(out_cred)
-            },
+            Some(cred) => match cred.expires_at() {
+                Some(exp) if *exp - Utc::now() < Duration::minutes(2) => self.get_new_credentials(profile),
+                _ => Ok(cred.into()),
+            }
+            None => self.get_new_credentials(profile),
         }
+    }
+
+    fn get_new_credentials(&mut self, profile: &ProfileName) -> Result<Cred, String> {
+        let parent = self.config.parent_profile(profile)
+            .ok_or(format!("profile '{}' does not exist", &profile))?
+            .clone();
+        let parent_cred = self.profile_credentials(&parent)?;
+        let sub = self.config.assume_subject(profile)?
+            .ok_or(format!("cannot get assume subject for profile {}", profile))?;
+        let parent_client = create_client(parent_cred, self.region.clone());
+        let new_cred = assume_subject(&parent_client, sub)?;
+        let out_cred = (&new_cred).into();
+        self.store.put_credentials(profile.clone(), new_cred);
+        Ok(out_cred)
     }
 }
 
