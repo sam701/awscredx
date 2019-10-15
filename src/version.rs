@@ -28,7 +28,7 @@ impl Display for PublishedVersion {
         writeln!(f, "New version {} is available.",
                  Style::new().fg(Color::Yellow).bold().paint(&self.tag_name))?;
         f.pad("")?;
-        writeln!(f, "Release nodes: {}", &self.html_url)?;
+        writeln!(f, "Release notes: {}", &self.html_url)?;
         f.pad("")?;
         writeln!(f, "Binary download URL: {}", &self.binary_download_url)
     }
