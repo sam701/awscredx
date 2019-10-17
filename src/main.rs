@@ -9,6 +9,9 @@ extern crate chrono;
 extern crate ansi_term;
 extern crate linked_hash_map;
 extern crate reqwest;
+extern crate hyper;
+extern crate hyper_proxy;
+extern crate hyper_tls;
 
 use crate::config::Config;
 use ansi_term::{Color, Style};

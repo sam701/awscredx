@@ -5,6 +5,10 @@ use crate::config::{Config, AssumeSubject};
 use crate::credentials::{ProfileName, CredentialsFile};
 use std::error::Error;
 use chrono::{Utc, Duration};
+use hyper_proxy::{Proxy, Intercept, ProxyConnector};
+use hyper_tls::HttpsConnector;
+use hyper::Uri;
+use hyper::client::HttpConnector;
 
 pub struct RoleAssumer<'a> {
     region: Region,
@@ -60,7 +64,7 @@ impl<'a> RoleAssumer<'a> {
         let parent_cred = self.profile_credentials(&parent)?;
         let sub = self.config.assume_subject(profile)?
             .ok_or(format!("cannot get assume subject for profile {}", profile))?;
-        let parent_client = create_client(parent_cred, self.region.clone());
+        let parent_client = create_client(parent_cred, self.region.clone())?;
         let new_cred = assume_subject(&parent_client, sub)?;
         let out_cred = (&new_cred).into();
         self.store.put_credentials(profile.clone(), new_cred);
@@ -94,9 +98,9 @@ fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCrede
 }
 
 
-fn create_client(credentials: Cred, region: Region) -> StsClient {
-    StsClient::new_with(
-        HttpClient::new().unwrap(),
+fn create_client(credentials: Cred, region: Region) -> Result<StsClient, String> {
+    Ok(StsClient::new_with(
+        HttpClient::from_connector(get_https_connector()?),
         StaticProvider::new(
             credentials.key,
             credentials.secret,
@@ -104,5 +108,25 @@ fn create_client(credentials: Cred, region: Region) -> StsClient {
             None,
         ),
         region,
-    )
+    ))
+}
+
+fn get_https_proxy() -> Option<String> {
+    std::env::var_os("https_proxy")
+        .or(std::env::var_os("HTTPS_PROXY"))
+        .map(|x| x.into_string().expect("https_proxy is utf8"))
+}
+
+fn get_https_connector() -> Result<ProxyConnector<HttpsConnector<HttpConnector>>, String> {
+    let connector = HttpsConnector::new(2)
+        .expect("connector with 2 threads");
+    Ok(match get_https_proxy() {
+        Some(proxy_url) => {
+            let url = proxy_url.parse::<Uri>()
+                .map_err(|e| format!("cannot parse proxy URL({}): {}", &proxy_url, e))?;
+            let proxy = Proxy::new(Intercept::All, url);
+            ProxyConnector::from_proxy(connector, proxy).expect("proxy created")
+        }
+        None => ProxyConnector::new(connector).expect("transparent proxy created")
+    })
 }
