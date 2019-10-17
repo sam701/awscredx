@@ -17,3 +17,9 @@ pub fn set_permissions(path: &PathBuf, mode: u32) {
 
 #[cfg(target_family = "windows")]
 pub fn set_permissions(_path: &PathBuf, _mode: u32) {}
+
+pub fn get_https_proxy() -> Option<String> {
+    std::env::var_os("https_proxy")
+        .or(std::env::var_os("HTTPS_PROXY"))
+        .map(|x| x.into_string().expect("https_proxy is utf8"))
+}

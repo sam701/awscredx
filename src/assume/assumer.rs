@@ -9,6 +9,7 @@ use hyper_proxy::{Proxy, Intercept, ProxyConnector};
 use hyper_tls::HttpsConnector;
 use hyper::Uri;
 use hyper::client::HttpConnector;
+use crate::util;
 
 pub struct RoleAssumer<'a> {
     region: Region,
@@ -111,16 +112,10 @@ fn create_client(credentials: Cred, region: Region) -> Result<StsClient, String>
     ))
 }
 
-fn get_https_proxy() -> Option<String> {
-    std::env::var_os("https_proxy")
-        .or(std::env::var_os("HTTPS_PROXY"))
-        .map(|x| x.into_string().expect("https_proxy is utf8"))
-}
-
 fn get_https_connector() -> Result<ProxyConnector<HttpsConnector<HttpConnector>>, String> {
     let connector = HttpsConnector::new(2)
         .expect("connector with 2 threads");
-    Ok(match get_https_proxy() {
+    Ok(match util::get_https_proxy() {
         Some(proxy_url) => {
             let url = proxy_url.parse::<Uri>()
                 .map_err(|e| format!("cannot parse proxy URL({}): {}", &proxy_url, e))?;

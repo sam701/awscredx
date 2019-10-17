@@ -2,6 +2,8 @@ use reqwest;
 use serde::Deserialize;
 use ansi_term::{Style, Color};
 use std::fmt::{self, Display};
+use crate::util;
+use reqwest::Proxy;
 
 #[derive(Deserialize)]
 struct GithubVersion {
@@ -51,8 +53,21 @@ fn os_name() -> &'static str {
     TRAVIS_OS_NAME_OPT.unwrap_or("osx")
 }
 
+fn get_http_client() -> Result<reqwest::Client, String> {
+    let mut builder = reqwest::ClientBuilder::new();
+    if let Some(proxy_url) = util::get_https_proxy() {
+        builder = builder.proxy(Proxy::all(&proxy_url)
+            .map_err(|e| format!("cannot create proxy from URL({}): {}", &proxy_url, e))?);
+    }
+    builder
+        .build()
+        .map_err(|e| format!("cannot build http client: {}", e))
+}
+
 pub fn check_new_version() -> Result<Option<PublishedVersion>, String> {
-    let github_version: GithubVersion = reqwest::get("https://api.github.com/repos/sam701/awscredx/releases/latest")
+    let github_version: GithubVersion = get_http_client()?
+        .get("https://api.github.com/repos/sam701/awscredx/releases/latest")
+        .send()
         .map_err(|e| format!("cannot check new version: {}", e))?
         .json()
         .map_err(|e| format!("cannot decode github version response: {}", e))?;
