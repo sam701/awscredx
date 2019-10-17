@@ -124,7 +124,7 @@ fn write_shell_script(ctx: &JobContext) -> Result<JobReport, String> {
 
     let title = format!("Create shell script '{}'",
                         ctx.styles.path.paint(ctx.shell_config_script.to_str().unwrap()));
-    if outdated_script() {
+    if !ctx.shell_config_script.exists() || outdated_script() {
         let file = File::create(&ctx.shell_config_script)
             .map_err(|e| format!("cannot create configuration file {}: {}", ctx.shell_config_script.display(), e))?;
         util::set_permissions(&ctx.shell_config_script, 0o600);
