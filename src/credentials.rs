@@ -1,6 +1,5 @@
 use rusoto_credential::AwsCredentials;
 use std::fs::{self, File};
-use std::env;
 use std::io::prelude::*;
 use std::fmt::{Display, Formatter, Error};
 use std::path::{Path, PathBuf};
@@ -9,10 +8,12 @@ use std::collections::HashMap;
 use chrono::{Utc, DateTime, Duration};
 use std::rc::Rc;
 use serde::{Serialize, Deserialize};
+use crate::util;
 
 #[derive(Debug)]
 pub struct CredentialsFile {
     path: PathBuf,
+    expirations_path: PathBuf,
     profiles: Vec<CredentialsProfile>,
 }
 
@@ -65,10 +66,11 @@ impl Display for CredentialsProfile {
 }
 
 impl CredentialsFile {
-    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, String> {
+    pub fn read<P: AsRef<Path>>(path: P, expirations_path: P) -> Result<Self, String> {
         let mut cf = Self {
             profiles: Vec::new(),
             path: path.as_ref().to_owned(),
+            expirations_path: expirations_path.as_ref().to_owned(),
         };
 
         let file = match File::open(&path) {
@@ -78,7 +80,7 @@ impl CredentialsFile {
         let br = BufReader::new(&file);
 
 
-        let expiraitons = CredentialExpirations::read(cf.expirations_file_path())?;
+        let expiraitons = CredentialExpirations::read(&cf.expirations_path)?;
         let mut props: HashMap<String, String> = HashMap::new();
         let mut profile_name: Option<ProfileName> = None;
         for line_result in br.lines() {
@@ -102,10 +104,6 @@ impl CredentialsFile {
         }
 
         Ok(cf)
-    }
-
-    fn expirations_file_path(&self) -> String {
-        format!("{}.expirations.toml", self.path.display())
     }
 
     fn add_credentials(&mut self, profile_name: ProfileName, props: &mut HashMap<String, String>, expirations: &CredentialExpirations) -> Result<(), String> {
@@ -143,8 +141,9 @@ impl CredentialsFile {
     }
 
     pub fn read_default() -> Result<Self, String> {
-        let home = env::var("HOME").expect("HOME is unset");
-        Self::read(format!("{}/.aws/credentials", &home))
+        let cr = util::path_to_absolute("~/.aws/credentials");
+        let ex = util::path_to_absolute("~/.local/share/awscredx/expirations.toml");
+        Self::read(cr, ex)
     }
 
     pub fn put_credentials(&mut self, profile: ProfileName, credentials: AwsCredentials) {
@@ -165,7 +164,7 @@ impl CredentialsFile {
                 expiraitons.0.insert(profile.profile_name.clone(), exp.clone());
             }
         }
-        expiraitons.write(self.expirations_file_path())
+        expiraitons.write(&self.expirations_path)
     }
 
     pub fn get_credentials(&self, profile_name: &ProfileName) -> Option<&AwsCredentials> {
@@ -196,7 +195,7 @@ fn read_property(line: &str) -> Option<Property> {
 
 #[test]
 fn read_credentials() {
-    let mut cred_file = CredentialsFile::read("./test").unwrap();
+    let mut cred_file = CredentialsFile::read("./test", "./test.expirations.toml").unwrap();
     let now = Utc::now();
     cred_file.put_credentials(ProfileName::new("test1"), AwsCredentials::new("abc2", "cde2", Some("nice".to_owned()), Some(now + Duration::minutes(10))));
     cred_file.put_credentials(ProfileName::new("test2"), AwsCredentials::new("k2", "s2", Some("token1".to_owned()), Some(now - Duration::minutes(10))));
@@ -204,7 +203,7 @@ fn read_credentials() {
     cred_file.put_credentials(ProfileName::new("test4"), AwsCredentials::new("k4", "s4", Some("token=4".to_owned()), Some(now + Duration::minutes(10))));
     cred_file.write().unwrap();
 
-    cred_file = CredentialsFile::read("./test").unwrap();
+    cred_file = CredentialsFile::read("./test", "./test.expirations.toml").unwrap();
     let pn_test1 = ProfileName::new("test1");
     let pn_test2 = ProfileName::new("test2");
     let pn_test3 = ProfileName::new("test3");
@@ -222,7 +221,7 @@ fn read_credentials() {
     println!("{:?}", &cred_file);
 
     fs::remove_file(&cred_file.path).unwrap();
-    fs::remove_file(cred_file.expirations_file_path()).unwrap();
+    fs::remove_file(&cred_file.expirations_path).unwrap();
 }
 
 
@@ -243,8 +242,10 @@ impl CredentialExpirations {
         Self(HashMap::new())
     }
 
-    fn write<P: AsRef<Path>>(&self, path: P) -> Result<(), String> {
+    fn write(&self, path: &PathBuf) -> Result<(), String> {
         let content = toml::to_string(&self.0).expect("Cannot encode expirations into TOML");
-        fs::write(path, content).map_err(|e| format!("Cannot write file: {}", e))
+        fs::write(path, content).map_err(|e| format!("Cannot write file: {}", e))?;
+        util::set_permissions(path, 0o600);
+        Ok(())
     }
 }
