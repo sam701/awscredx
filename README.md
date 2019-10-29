@@ -14,6 +14,9 @@ In a new shell you can call `assume <profile name>` to assume the role from `<pr
 
 ## Features
 
+### Shows assumed profile in shell prompt
+![prompt](./doc/prompt.png)
+
 ### Explains what has been done
 ![init](./doc/init.png)
 
@@ -25,15 +28,15 @@ dev = "arn:aws:iam::123456589012:role/Admin"
 prod = "arn:aws:iam::123456589013:role/TestRole"
 ```
 
-### Shows assumed profile in shell prompt
-![prompt](./doc/prompt.png)
-
 ### Yubikey integration
 The MFA is read from your Yubikey so you do not need to type it.\
 ![prompt](./doc/yubikey.png)
 
 ### Checks for new versions
 ![version-check](./doc/version-check.png)
+
+### Supports `HTTPS_PROXY` envvar
+In case you are behind a corporate proxy.
 
 ### Written with love in Rust
 https://www.rust-lang.org/
