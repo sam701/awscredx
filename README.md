@@ -4,6 +4,8 @@
 Assume AWS roles under the motto "don't make me think".
 `awscredx` has a goal to make the role assumption on the command line simple and intuitive.
 
+![role-assumption](./doc/accounts.png)
+
 ## How to use it
 Download the [binary](https://github.com/sam701/awscredx/releases/latest).
 Add `awscredx` into your `PATH` and call `awscredx init`.
