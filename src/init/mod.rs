@@ -26,6 +26,13 @@ macro_rules! job {
 fn run_jobs(ctx: &JobContext) -> Result<(), String> {
     ensure_tool_in_path()?;
 
+    if ctx.update {
+        println!("{} {}",
+                 ctx.styles.helpers.paint("Updating scripts to version"),
+                 ctx.styles.failure.paint(crate::version::VERSION),
+        );
+    }
+
     job!(create_config_dir, ctx);
     job!(create_config_file, ctx);
 
@@ -33,9 +40,11 @@ fn run_jobs(ctx: &JobContext) -> Result<(), String> {
     job!(write_shell_script, ctx);
     job!(set_up_script_sources, ctx);
 
-    println!("\nNow edit configuration file {},\nthen open a new terminal and assume a role by calling '{}'",
-             ctx.styles.path.paint(ctx.config_file.to_str().unwrap()),
-             ctx.styles.path.paint("assume <profile-from-your-config>"));
+    if !ctx.update {
+        println!("\nNow edit configuration file {},\nthen open a new terminal and assume a role by calling '{}'",
+                 ctx.styles.path.paint(ctx.config_file.to_str().unwrap()),
+                 ctx.styles.path.paint("assume <profile-from-your-config>"));
+    }
 
     Ok(())
 }
@@ -57,7 +66,9 @@ fn print_report(report: &JobReport, context: &JobContext) {
            context.styles.helpers.paint("→"));
     match report.status {
         JobStatus::Success =>
-            println!("{}", context.styles.success.paint("created")),
+            println!("{}", context.styles.success.paint(
+                if context.update { "updated" } else { "created" }
+            )),
         JobStatus::WasAlreadyDone =>
             println!("{}", context.styles.already_done.paint("already exists")),
     }

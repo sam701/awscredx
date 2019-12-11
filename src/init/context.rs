@@ -15,6 +15,8 @@ pub struct JobContext {
     pub shell_init_script: PathBuf,
 
     pub styles: Styles,
+
+    pub update: bool,
 }
 
 impl JobContext {
@@ -26,6 +28,7 @@ impl JobContext {
         let data_dir = Path::new(&home_dir).join(".local/share/awscredx").to_path_buf();
         let shell_config_script = data_dir.join(shell_script(&shell)).to_path_buf();
         let shell_init_script = shell_init_script_path(&shell);
+        let update = config_file.exists() && shell_config_script.exists();
         Self {
             home_dir,
             shell,
@@ -36,6 +39,7 @@ impl JobContext {
             data_dir,
 
             styles: Styles::new(),
+            update,
         }
     }
 

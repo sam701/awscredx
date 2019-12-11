@@ -2,8 +2,10 @@
 # Do not edit.
 
 set -x AWSCREDX_SCRIPT_VERSION "@version@"
-functions -c fish_prompt _original_fish_prompt
-
+functions -q _original_fish_prompt
+if test $status -ne 0
+  functions -c fish_prompt _original_fish_prompt
+end
 
 if test -e $HOME/.config/fish/functions/fish_prompt.fish
   cat $HOME/.config/fish/functions/fish_prompt.fish | grep AWS_PROFILE > /dev/null
@@ -15,23 +17,28 @@ end
 function assume
   set -l output ("@bin@" assume $argv)
   set -l s $status
-  if test $s -eq 0
-    eval "$output"
-    if test -z "$_original_prompt_has_aws_profile"
-      function fish_prompt
-        set -l old_status $status
+  switch $s
+    case 0
+      eval "$output"
+      if test -z "$_original_prompt_has_aws_profile"
+        function fish_prompt
+          set -l old_status $status
 
-        echo -n "["
-        set_color brmagenta
-        echo -n $AWS_PROFILE
-        set_color normal
-        echo -n "] "
+          echo -n "["
+          set_color brmagenta
+          echo -n $AWS_PROFILE
+          set_color normal
+          echo -n "] "
 
-        echo -n "exit $old_status" | .
-        _original_fish_prompt
+          echo -n "exit $old_status" | .
+          _original_fish_prompt
+        end
       end
-    end
-  else
-    return $s
+    case 50
+      "@bin@" init
+      source $HOME/.local/share/awscredx/script.fish
+      assume $argv
+    case '*'
+      return $s
   end
 end

@@ -11,6 +11,9 @@ use chrono::{Utc, Duration};
 mod assumer;
 
 pub fn run(profile: &str, config: &Config) {
+    if super::init::outdated_script() {
+        process::exit(50);
+    }
     match run_raw(profile, config) {
         Ok(_) => {}
         Err(e) => {
