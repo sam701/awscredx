@@ -1,24 +1,30 @@
 use std::{env, process};
 use std::path::Path;
+
+use ansi_term::{Color, Style};
+use chrono::{Duration, Utc};
+use rusoto_core::Region;
+
+use crate::assume::assumer::RoleAssumer;
 use crate::config::Config;
 use crate::credentials::CredentialsFile;
-use crate::assume::assumer::RoleAssumer;
-use rusoto_core::Region;
-use ansi_term::{Style, Color};
 use crate::state;
-use chrono::{Utc, Duration};
 
 mod assumer;
 
 pub fn run(profile: &str, config: &Config) {
+    let err_style = Style::new().fg(Color::Red).bold();
+    let error = err_style.paint("ERROR");
+
     if super::init::outdated_script() {
+        println!("{}: detected scripts from the previous version. Please run 'awscredx init'.",
+                 &error);
         process::exit(50);
     }
     match run_raw(profile, config) {
         Ok(_) => {}
         Err(e) => {
-            let err_style = Style::new().fg(Color::Red).bold();
-            eprintln!("{}: {}", err_style.paint("ERROR"), e);
+            eprintln!("{}: {}", &error, e);
             process::exit(1);
         }
     }
