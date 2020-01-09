@@ -65,6 +65,11 @@ impl Display for CredentialsProfile {
     }
 }
 
+pub struct CredentialsData<'a> {
+    pub profile_name: &'a str,
+    pub expires_at: &'a Option<DateTime<Utc>>,
+}
+
 impl CredentialsFile {
     pub fn read<P: AsRef<Path>>(path: P, expirations_path: P) -> Result<Self, String> {
         let mut cf = Self {
@@ -171,6 +176,14 @@ impl CredentialsFile {
         self.profiles.iter()
             .find(|p| p.profile_name == *profile_name)
             .map(|p| &p.credentials)
+    }
+
+    pub fn get_current_credentials_data(&self) -> impl Iterator<Item=CredentialsData> + '_ {
+        self.profiles.iter()
+            .map(|x| CredentialsData{
+                profile_name: &x.profile_name.0,
+                expires_at: x.credentials.expires_at(),
+            })
     }
 }
 
