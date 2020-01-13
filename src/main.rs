@@ -138,7 +138,7 @@ fn print_credentials() {
 }
 
 fn format_duration(d: Duration) -> String {
-    format!("{}:{}", d.num_hours(), d.num_minutes() % 60)
+    format!("{}:{:02}", d.num_hours(), d.num_minutes() % 60)
 }
 
 fn print_prompt() {
