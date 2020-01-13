@@ -8,10 +8,14 @@ if test $status -ne 0
 end
 
 if test -e $HOME/.config/fish/functions/fish_prompt.fish
-  cat $HOME/.config/fish/functions/fish_prompt.fish | grep AWS_PROFILE > /dev/null
+  cat $HOME/.config/fish/functions/fish_prompt.fish | grep __awscredx_profile_prompt > /dev/null
   if test $status -eq 0
     set _original_prompt_has_aws_profile 1
   end
+end
+
+function __awscredx_prompt
+  @bin@ print-prompt
 end
 
 function assume
@@ -24,11 +28,7 @@ function assume
         function fish_prompt
           set -l old_status $status
 
-          echo -n "["
-          set_color brmagenta
-          echo -n $AWS_PROFILE
-          set_color normal
-          echo -n "] "
+          __awscredx_prompt
 
           echo -n "exit $old_status" | .
           _original_fish_prompt

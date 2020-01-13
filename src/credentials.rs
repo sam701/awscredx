@@ -1,13 +1,15 @@
-use rusoto_credential::AwsCredentials;
-use std::fs::{self, File};
-use std::io::prelude::*;
-use std::fmt::{Display, Formatter, Error};
-use std::path::{Path, PathBuf};
-use std::io::BufReader;
 use std::collections::HashMap;
-use chrono::{Utc, DateTime, Duration};
+use std::fmt::{Display, Error, Formatter};
+use std::fs::{self, File};
+use std::io::BufReader;
+use std::io::prelude::*;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use serde::{Serialize, Deserialize};
+
+use chrono::{DateTime, Duration, Utc};
+use rusoto_credential::AwsCredentials;
+use serde::{Deserialize, Serialize};
+
 use crate::util;
 
 #[derive(Debug)]
@@ -147,7 +149,7 @@ impl CredentialsFile {
 
     pub fn read_default() -> Result<Self, String> {
         let cr = util::path_to_absolute("~/.aws/credentials");
-        let ex = util::path_to_absolute("~/.local/share/awscredx/expirations.toml");
+        let ex = util::path_to_absolute(EXPIRATIONS_FILE);
         Self::read(cr, ex)
     }
 
@@ -180,7 +182,7 @@ impl CredentialsFile {
 
     pub fn get_current_credentials_data(&self) -> impl Iterator<Item=CredentialsData> + '_ {
         self.profiles.iter()
-            .map(|x| CredentialsData{
+            .map(|x| CredentialsData {
                 profile_name: &x.profile_name.0,
                 expires_at: x.credentials.expires_at(),
             })
@@ -238,7 +240,9 @@ fn read_credentials() {
 }
 
 
-struct CredentialExpirations(HashMap<ProfileName, DateTime<Utc>>);
+pub struct CredentialExpirations(HashMap<ProfileName, DateTime<Utc>>);
+
+const EXPIRATIONS_FILE: &str = "~/.local/share/awscredx/expirations.toml";
 
 impl CredentialExpirations {
     fn read<P: AsRef<Path>>(path: P) -> Result<Self, String> {
@@ -249,6 +253,11 @@ impl CredentialExpirations {
         let hm = toml::from_str(&content)
             .map_err(|e| format!("Cannot parse TOML file {}: {}", path.as_ref().display(), e))?;
         Ok(CredentialExpirations(hm))
+    }
+
+    pub fn get(profile: &str) -> Result<Option<DateTime<Utc>>, String> {
+        let mut f = Self::read(util::path_to_absolute(EXPIRATIONS_FILE))?;
+        Ok(f.0.remove(&ProfileName::new(profile)))
     }
 
     fn new() -> Self {

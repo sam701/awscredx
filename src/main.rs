@@ -13,8 +13,10 @@ extern crate rusoto_sts;
 extern crate serde;
 extern crate toml;
 
+use std::env;
+
 use ansi_term::{Color, Style};
-use chrono::{DateTime, Duration, Local};
+use chrono::{DateTime, Duration, Local, Utc};
 
 use crate::config::Config;
 use crate::credentials::CredentialsFile;
@@ -32,6 +34,7 @@ fn main() {
     const COMMAND_ASSUME: &str = "assume";
     const COMMAND_LIST_PROFILES: &str = "list-profiles";
     const COMMAND_LIST_CREDENTIALS: &str = "list-credentials";
+    const COMMAND_PRINT_PROMPT: &str = "print-prompt";
     const COMMAND_VERSION: &str = "version";
 
     let matches = clap::App::new("awscredx")
@@ -50,6 +53,8 @@ Run '{}' to create the configuration file and set up shell scripts."#,
             .about("Lists configured profiles with their role ARNs"))
         .subcommand(clap::SubCommand::with_name(COMMAND_LIST_CREDENTIALS)
             .about("Lists current credentials with their expiration times"))
+        .subcommand(clap::SubCommand::with_name(COMMAND_PRINT_PROMPT)
+            .about("Prints prompt part for the current profile ($AWS_PROFILE)"))
         .subcommand(clap::SubCommand::with_name(COMMAND_VERSION)
             .about("Shows current version and checks for newer version"))
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)
@@ -60,6 +65,7 @@ Run '{}' to create the configuration file and set up shell scripts."#,
             let config = read_config();
             assume::run(arg.value_of("profile-name").unwrap(), &config)
         }
+        (COMMAND_PRINT_PROMPT, _) => print_prompt(),
         (COMMAND_INIT, _) => init::run(),
         (COMMAND_LIST_PROFILES, _) => print_profiles(),
         (COMMAND_LIST_CREDENTIALS, _) => print_credentials(),
@@ -133,4 +139,29 @@ fn print_credentials() {
 
 fn format_duration(d: Duration) -> String {
     format!("{}:{}", d.num_hours(), d.num_minutes() % 60)
+}
+
+fn print_prompt() {
+    if let Ok(profile) = env::var("AWS_PROFILE") {
+        match credentials::CredentialExpirations::get(&profile) {
+            Ok(Some(ex)) => {
+                let duration = ex - Utc::now();
+                let expiration_style = if duration > Duration::minutes(10) {
+                    Style::new().fg(Color::Green)
+                } else if duration > Duration::minutes(5) {
+                    Style::new().fg(Color::Yellow).bold()
+                } else {
+                    Style::new().fg(Color::Red).bold()
+                };
+                if duration > Duration::zero() {
+                    print!("[{} {}]",
+                           Style::new().fg(Color::White).bold().paint(profile).to_string(),
+                           expiration_style.paint(format_duration(duration)).to_string(),
+                    )
+                }
+            }
+            Ok(None) => {}
+            Err(e) => eprintln!("ERROR: {}", e)
+        }
+    }
 }

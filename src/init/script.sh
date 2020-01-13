@@ -6,6 +6,10 @@ if [ -z "$_ORIGINAL_PS1" ]; then
   _ORIGINAL_PS1="${PS1:-}"
 fi
 
+function __awscredx_prompt {
+  @bin@ print-prompt
+}
+
 function assume {
   out=$("@bin@" assume "$@")
   s=$?
@@ -13,10 +17,9 @@ function assume {
     0)
       eval $out
       if [[ $SHELL =~ zsh ]]; then
-        PS1=$'[\e[1;35m'$AWS_PROFILE$'\e[0m] '${_ORIGINAL_PS1:-}
-      else
-        PS1="[\e[1;35m\$AWS_PROFILE\e[0m] ${_ORIGINAL_PS1:-}"
+        setopt PROMPT_SUBST
       fi
+      PS1='$(__awscredx_prompt) '${_ORIGINAL_PS1:-}
       ;;
     50)
       "@bin@" init

@@ -35,7 +35,7 @@ fn run_raw(profile: &str, config: &Config) -> Result<(), String> {
 
     let mut state = state::State::read();
     let mut assumer = RoleAssumer::new(
-        Region::EuCentral1,
+        Region::EuCentral1, // TODO: read from envvar
         cred_file,
         config,
     );
