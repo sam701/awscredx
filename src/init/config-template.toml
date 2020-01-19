@@ -13,15 +13,20 @@ main_profile = "main"
 # MFA profile name. Default is '<main_profile>-mfa'.
 # mfa_profile = "mfa"
 
-# How often to check for new version.
-check_new_version_interval_days = 7
-
 # MFA serial number can be found in AWS web console -> IAM
 mfa_serial_number = "arn:aws:iam::MAIN_ACCOUNT_ID:mfa/USERNAME"
 
 # Uncomment and adjust the shell command if your MFA token can be provided by a script.
 # Here is an example for yubikey.
 # mfa_command = "ykman oath code | awk '/SOME_PATTERN/ {print $2}'"
+
+# How often to check for new version.
+check_new_version_interval_days = 7
+
+# This will prepend the assumed profile and the expiration time to your shell prompt.
+# You can disable this feature and directly use the shell function "__awscredx_prompt" in your prompt
+# at a more appropriate place, e.g. on a separate line, etc.
+modify_shell_prompt = true
 
 [profiles]
 

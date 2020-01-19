@@ -7,13 +7,6 @@ if test $status -ne 0
   functions -c fish_prompt _original_fish_prompt
 end
 
-if test -e $HOME/.config/fish/functions/fish_prompt.fish
-  cat $HOME/.config/fish/functions/fish_prompt.fish | grep __awscredx_profile_prompt > /dev/null
-  if test $status -eq 0
-    set _original_prompt_has_aws_profile 1
-  end
-end
-
 function __awscredx_prompt
   @bin@ print-prompt
 end
@@ -24,7 +17,7 @@ function assume
   switch $s
     case 0
       eval "$output"
-      if test -z "$_original_prompt_has_aws_profile"
+      if test "$__awscredx_modify_prompt" = "true"
         function fish_prompt
           set -l old_status $status
 

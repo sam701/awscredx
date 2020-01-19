@@ -16,10 +16,12 @@ function assume {
   case $s in
     0)
       eval $out
-      if [[ $SHELL =~ zsh ]]; then
-        setopt PROMPT_SUBST
+      if [ "$__awscredx_modify_prompt" = "true" ]; then
+        if [[ $SHELL =~ zsh ]]; then
+          setopt PROMPT_SUBST
+        fi
+        PS1='$(__awscredx_prompt) '${_ORIGINAL_PS1:-}
       fi
-      PS1='$(__awscredx_prompt) '${_ORIGINAL_PS1:-}
       ;;
     50)
       "@bin@" init

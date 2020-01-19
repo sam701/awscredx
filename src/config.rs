@@ -14,6 +14,7 @@ pub struct Config {
     mfa_command: Option<String>,
     pub profiles: LinkedHashMap<ProfileName, Profile>,
     pub check_new_version_interval_days: u32,
+    pub modify_shell_prompt: bool,
 }
 
 #[derive(Deserialize, Debug)]
@@ -67,6 +68,7 @@ impl Config {
             mfa_command: Option<String>,
             profiles: LinkedHashMap<ProfileName, ProfileValue>,
             check_new_version_interval_days: Option<u32>,
+            modify_shell_prompt: Option<bool>,
         }
 
         let rc: RawConfig = toml::from_str(&content)
@@ -87,6 +89,7 @@ impl Config {
                 ProfileValue::ProfileConfig(profile) => profile,
             })).collect(),
             check_new_version_interval_days: rc.check_new_version_interval_days.unwrap_or(7),
+            modify_shell_prompt: rc.modify_shell_prompt.unwrap_or(true),
         };
         Ok(Some(config))
     }

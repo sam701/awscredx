@@ -40,7 +40,7 @@ fn run_raw(profile: &str, config: &Config) -> Result<(), String> {
         config,
     );
     assumer.assume(profile)?;
-    print_profile(profile);
+    print_profile(profile, config);
     if Utc::now() - state.last_version_check_time > Duration::days(config.check_new_version_interval_days as i64) {
         check_newer_version();
         state.last_version_check_time = Utc::now();
@@ -58,15 +58,21 @@ fn check_newer_version() {
     }
 }
 
-fn print_profile(profile_name: &str) {
+fn print_profile(profile_name: &str, config: &Config) {
     match env::var_os("SHELL") {
         Some(shell) => {
             let file = Path::new(&shell)
                 .file_name().unwrap()
                 .to_str().unwrap();
             match file {
-                "fish" => println!("set -xg AWS_PROFILE {}", profile_name),
-                _ => println!("export AWS_PROFILE={}", profile_name),
+                "fish" => {
+                    print!("set -xg AWS_PROFILE {}; ", profile_name);
+                    println!("set -l __awscredx_modify_prompt {}", config.modify_shell_prompt);
+                },
+                _ => {
+                    print!("export AWS_PROFILE={}; ", profile_name);
+                    println!("__awscredx_modify_prompt={}", config.modify_shell_prompt);
+                },
             }
         }
         None => println!("export AWS_PROFILE={}", profile_name)
