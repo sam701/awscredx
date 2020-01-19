@@ -16,14 +16,16 @@ In a new shell you can call `assume <profile name>` to assume the role from `<pr
 
 ## Features
 
-### Shows assumed profile in shell prompt
-![prompt](./doc/prompt.png)
-
-### Explains what has been done
+### Simple installation
+It is just a single [binary](https://github.com/sam701/awscredx/releases/latest) that creates all required helper shell scripts.
+It explains what has been done.
 ![init](./doc/init.png)
 
+### Shows assumed profile with "expires in" in shell prompt
+![prompt](./doc/prompt.png)
+
 ### Configurable role profiles
-The [configuration file](./src/init/config-template.toml) is well documented.
+Well documented [configuration file](./src/init/config-template.toml).
 ```toml
 [profiles]
 dev = "arn:aws:iam::123456589012:role/Admin"
@@ -33,6 +35,9 @@ prod = "arn:aws:iam::123456589013:role/TestRole"
 ### Yubikey integration
 The MFA is read from your Yubikey so you do not need to type it.\
 ![prompt](./doc/yubikey.png)
+
+### Lists current credentials with their expiration times
+![prompt](./doc/credential-list.png)
 
 ### Checks for new versions
 ![version-check](./doc/version-check.png)
