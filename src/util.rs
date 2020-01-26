@@ -1,5 +1,7 @@
 use std::env;
 use std::path::PathBuf;
+use reqwest::Proxy;
+use ansi_term::{Style, Color};
 
 
 pub fn path_to_absolute(path: &str) -> PathBuf {
@@ -22,4 +24,20 @@ pub fn get_https_proxy() -> Option<String> {
     std::env::var_os("https_proxy")
         .or(std::env::var_os("HTTPS_PROXY"))
         .map(|x| x.into_string().expect("https_proxy is utf8"))
+}
+
+pub fn get_https_client() -> Result<reqwest::Client, String> {
+    let mut builder = reqwest::ClientBuilder::new();
+    if let Some(proxy_url) = get_https_proxy() {
+        builder = builder.proxy(Proxy::all(&proxy_url)
+            .map_err(|e| format!("cannot create proxy from URL({}): {}", &proxy_url, e))?);
+    }
+    builder
+        .build()
+        .map_err(|e| format!("cannot build http client: {}", e))
+}
+
+pub fn styled_error_word() -> String {
+    let err_style = Style::new().fg(Color::Red).bold();
+    err_style.paint("ERROR").to_string()
 }

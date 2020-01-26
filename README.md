@@ -32,6 +32,14 @@ dev = "arn:aws:iam::123456589012:role/Admin"
 prod = "arn:aws:iam::123456589013:role/TestRole"
 ```
 
+### Role chaining
+You can assume a role `k8s-admin` from a role `prod` that is in turn assumed from your main account credentials.
+```toml
+[profiles.k8s-admin]
+role_arn = "arn:aws:iam::123456589014:role/K8sAdminRole"
+parent_profile = "prod"
+```
+
 ### Yubikey integration
 The MFA is read from your Yubikey so you do not need to type it.\
 ![prompt](./doc/yubikey.png)

@@ -28,6 +28,12 @@ check_new_version_interval_days = 7
 # at a more appropriate place, e.g. on a separate line, etc.
 modify_shell_prompt = true
 
+# The AWS region.
+region = "eu-central-1"
+
+# Session name used for role assumption.
+session_name = "awscredx"
+
 [profiles]
 
 # You can specify profiles by either providing the role ARNs

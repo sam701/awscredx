@@ -1,6 +1,6 @@
 [package]
 name = "awscredx"
-version = "0.7.2"
+version = "0.8.0"
 authors = ["Alexei Samokvalov <alexei@sam701.com>"]
 edition = "2018"
 
@@ -13,6 +13,8 @@ rusoto_credential = "0.42"
 rusoto_sts = "0.42"
 toml = "0.5"
 serde = { version = "1.0", features = ["derive", "rc"] }
+serde_urlencoded = "*"
+serde_json = "*"
 custom_error = "1.7"
 chrono = "0.4"
 ansi_term = "0.12"
@@ -21,3 +23,4 @@ reqwest = "0.9"
 hyper = "*"
 hyper-tls = "*"
 hyper-proxy = "0.5"
+webbrowser = "0.5"

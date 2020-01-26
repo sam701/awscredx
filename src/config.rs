@@ -1,10 +1,14 @@
 use std::env;
 use std::fs;
-use serde::Deserialize;
-use crate::credentials::ProfileName;
 use std::io::stdin;
-use linked_hash_map::LinkedHashMap;
 use std::process::Command;
+
+use linked_hash_map::LinkedHashMap;
+use rusoto_core::Region;
+use serde::Deserialize;
+
+use crate::credentials::ProfileName;
+use std::str::FromStr;
 
 #[cfg_attr(test, derive(Debug))]
 pub struct Config {
@@ -15,6 +19,8 @@ pub struct Config {
     pub profiles: LinkedHashMap<ProfileName, Profile>,
     pub check_new_version_interval_days: u32,
     pub modify_shell_prompt: bool,
+    pub region: Region,
+    session_name: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -69,11 +75,17 @@ impl Config {
             profiles: LinkedHashMap<ProfileName, ProfileValue>,
             check_new_version_interval_days: Option<u32>,
             modify_shell_prompt: Option<bool>,
+            region: Option<String>,
+            session_name: Option<String>,
         }
 
         let rc: RawConfig = toml::from_str(&content)
             .map_err(|e| format!("Cannot parse TOML file {}: {}", &path, e))?;
         let mfa = rc.mfa_profile.unwrap_or(format!("{}-mfa", &rc.main_profile));
+        let region = match rc.region {
+            Some(r) => Region::from_str(&r).map_err(|_e| format!("Bad AWS region: {}", r))?,
+            None => Region::EuCentral1,
+        };
         let config = Config {
             main_profile: rc.main_profile,
             mfa_serial_number: rc.mfa_serial_number,
@@ -90,6 +102,8 @@ impl Config {
             })).collect(),
             check_new_version_interval_days: rc.check_new_version_interval_days.unwrap_or(7),
             modify_shell_prompt: rc.modify_shell_prompt.unwrap_or(true),
+            region,
+            session_name: rc.session_name.unwrap_or("awscredx".to_owned()),
         };
         Ok(Some(config))
     }
@@ -113,7 +127,7 @@ impl Config {
             self.profiles.get(profile)
                 .map(|p| AssumeSubject::Role {
                     role_arn: p.role_arn.clone(),
-                    session_name: "awscredx".to_owned(),
+                    session_name: self.session_name.clone(),
                 })
         };
         Ok(res)

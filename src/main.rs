@@ -11,7 +11,10 @@ extern crate rusoto_core;
 extern crate rusoto_credential;
 extern crate rusoto_sts;
 extern crate serde;
+extern crate serde_json;
+extern crate serde_urlencoded;
 extern crate toml;
+extern crate webbrowser;
 
 use std::env;
 
@@ -28,6 +31,7 @@ mod init;
 mod assume;
 mod version;
 mod util;
+mod web_console;
 
 fn main() {
     const COMMAND_INIT: &str = "init";
@@ -36,6 +40,14 @@ fn main() {
     const COMMAND_LIST_CREDENTIALS: &str = "list-credentials";
     const COMMAND_PRINT_PROMPT: &str = "print-prompt";
     const COMMAND_VERSION: &str = "version";
+    const COMMAND_WEB_CONSOLE_SIGNIN: &str = "web-console-signin";
+
+
+    const ARG_PROFILE_NAME: &str = "profile-name";
+    const ARG_WEB_CONSOLE_SERVICE: &str = "service";
+    const ARG_OPEN_IN_BROWSER: &str = "open-in-browser";
+
+
 
     let matches = clap::App::new("awscredx")
         .version(version::VERSION)
@@ -44,7 +56,7 @@ Run '{}' to create the configuration file and set up shell scripts."#,
                        Style::new().fg(Color::Yellow).paint("awscredx init")).as_str())
         .subcommand(clap::SubCommand::with_name(COMMAND_ASSUME)
             .about("Prints shell commands to assume the role for a given profile")
-            .arg(clap::Arg::with_name("profile-name")
+            .arg(clap::Arg::with_name(ARG_PROFILE_NAME)
                 .required(true)
                 .help("Profile name which role to assume")))
         .subcommand(clap::SubCommand::with_name(COMMAND_INIT)
@@ -53,6 +65,16 @@ Run '{}' to create the configuration file and set up shell scripts."#,
             .about("Lists configured profiles with their role ARNs"))
         .subcommand(clap::SubCommand::with_name(COMMAND_LIST_CREDENTIALS)
             .about("Lists current credentials with their expiration times"))
+        .subcommand(clap::SubCommand::with_name(COMMAND_WEB_CONSOLE_SIGNIN)
+            .about("Prints web console URL for the current profile ($AWS_PROFILE)")
+            .arg(clap::Arg::with_name(ARG_WEB_CONSOLE_SERVICE)
+                .long(ARG_WEB_CONSOLE_SERVICE)
+                .help("AWS service name, e.g. ec2, ecs, etc.")
+                .required(true)
+                .takes_value(true))
+            .arg(clap::Arg::with_name(ARG_OPEN_IN_BROWSER)
+                .long(ARG_OPEN_IN_BROWSER)
+                .help("Does not print the web console sign-in URL but opens the URL in browser")))
         .subcommand(clap::SubCommand::with_name(COMMAND_PRINT_PROMPT)
             .about("Prints prompt part for the current profile ($AWS_PROFILE)"))
         .subcommand(clap::SubCommand::with_name(COMMAND_VERSION)
@@ -63,12 +85,17 @@ Run '{}' to create the configuration file and set up shell scripts."#,
     match matches.subcommand() {
         (COMMAND_ASSUME, Some(arg)) => {
             let config = read_config();
-            assume::run(arg.value_of("profile-name").unwrap(), &config)
+            assume::run(arg.value_of(ARG_PROFILE_NAME).unwrap(), &config)
         }
         (COMMAND_PRINT_PROMPT, _) => print_prompt(),
         (COMMAND_INIT, _) => init::run(),
         (COMMAND_LIST_PROFILES, _) => print_profiles(),
         (COMMAND_LIST_CREDENTIALS, _) => print_credentials(),
+        (COMMAND_WEB_CONSOLE_SIGNIN, Some(arg)) =>
+            web_console::create_signin_url(
+                arg.value_of(ARG_WEB_CONSOLE_SERVICE).unwrap(),
+                arg.is_present(ARG_OPEN_IN_BROWSER),
+            ),
         (COMMAND_VERSION, _) => version::print_version(),
         _ => unreachable!(),
     }
