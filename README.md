@@ -17,7 +17,7 @@ In a new shell you can call `assume <profile name>` to assume the role from `<pr
 ## Features
 
 ### Shows assumed profile with "expires in" in shell prompt
-* Fancy colorful profile name in your prompt.
+* Fancy colorful profile name in your prompt with remaining time until expiration.
 * Support for `bash`, `zsh` and `fish`.
 
 ![prompt](./doc/prompt.png)
