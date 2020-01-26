@@ -21,6 +21,7 @@ pub struct Config {
     pub modify_shell_prompt: bool,
     pub region: Region,
     session_name: String,
+    pub rotate_credentials_days: Option<i64>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -77,6 +78,7 @@ impl Config {
             modify_shell_prompt: Option<bool>,
             region: Option<String>,
             session_name: Option<String>,
+            rotate_credentials_days: Option<i64>,
         }
 
         let rc: RawConfig = toml::from_str(&content)
@@ -104,6 +106,7 @@ impl Config {
             modify_shell_prompt: rc.modify_shell_prompt.unwrap_or(true),
             region,
             session_name: rc.session_name.unwrap_or("awscredx".to_owned()),
+            rotate_credentials_days: rc.rotate_credentials_days,
         };
         Ok(Some(config))
     }

@@ -9,6 +9,7 @@ extern crate linked_hash_map;
 extern crate reqwest;
 extern crate rusoto_core;
 extern crate rusoto_credential;
+extern crate rusoto_iam;
 extern crate rusoto_sts;
 extern crate serde;
 extern crate serde_json;

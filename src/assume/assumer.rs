@@ -1,15 +1,12 @@
-use rusoto_sts::{StsClient, Sts, AssumeRoleRequest, GetSessionTokenRequest, NewAwsCredsForStsCreds};
-use rusoto_core::{Region, HttpClient};
-use rusoto_credential::{AwsCredentials, StaticProvider};
-use crate::config::{Config, AssumeSubject};
-use crate::credentials::{ProfileName, CredentialsFile};
 use std::error::Error;
-use chrono::{Utc, Duration};
-use hyper_proxy::{Proxy, Intercept, ProxyConnector};
-use hyper_tls::HttpsConnector;
-use hyper::Uri;
-use hyper::client::HttpConnector;
-use crate::util;
+
+use chrono::{Duration, Utc};
+use rusoto_core::{HttpClient, Region};
+use rusoto_credential::{AwsCredentials, StaticProvider};
+use rusoto_sts::{AssumeRoleRequest, GetSessionTokenRequest, NewAwsCredsForStsCreds, Sts, StsClient};
+
+use crate::config::{AssumeSubject, Config};
+use crate::credentials::{CredentialsFile, ProfileName};
 
 pub struct RoleAssumer<'a> {
     region: Region,
@@ -66,7 +63,7 @@ impl<'a> RoleAssumer<'a> {
         let parent_cred = self.profile_credentials(&parent)?;
         let sub = self.config.assume_subject(profile)?
             .ok_or(format!("cannot get assume subject for profile {}", profile))?;
-        let parent_client = create_client(parent_cred, self.region.clone())?;
+        let parent_client = create_sts_client(parent_cred, self.region.clone())?;
         let new_cred = assume_subject(&parent_client, sub)?;
         let out_cred = (&new_cred).into();
         self.store.put_credentials(profile.clone(), new_cred);
@@ -100,9 +97,9 @@ fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCrede
 }
 
 
-fn create_client(credentials: Cred, region: Region) -> Result<StsClient, String> {
+fn create_sts_client(credentials: Cred, region: Region) -> Result<StsClient, String> {
     Ok(StsClient::new_with(
-        HttpClient::from_connector(get_https_connector()?),
+        HttpClient::from_connector(super::get_https_connector()?),
         StaticProvider::new(
             credentials.key,
             credentials.secret,
@@ -111,18 +108,4 @@ fn create_client(credentials: Cred, region: Region) -> Result<StsClient, String>
         ),
         region,
     ))
-}
-
-fn get_https_connector() -> Result<ProxyConnector<HttpsConnector<HttpConnector>>, String> {
-    let connector = HttpsConnector::new(2)
-        .expect("connector with 2 threads");
-    Ok(match util::get_https_proxy() {
-        Some(proxy_url) => {
-            let url = proxy_url.parse::<Uri>()
-                .map_err(|e| format!("cannot parse proxy URL({}): {}", &proxy_url, e))?;
-            let proxy = Proxy::new(Intercept::All, url);
-            ProxyConnector::from_proxy(connector, proxy).expect("proxy created")
-        }
-        None => ProxyConnector::new(connector).expect("transparent proxy created")
-    })
 }

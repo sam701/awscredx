@@ -3,6 +3,10 @@ use std::path::Path;
 
 use ansi_term::{Color, Style};
 use chrono::{Duration, Utc};
+use hyper::client::HttpConnector;
+use hyper::Uri;
+use hyper_proxy::{Intercept, Proxy, ProxyConnector};
+use hyper_tls::HttpsConnector;
 
 use crate::assume::assumer::RoleAssumer;
 use crate::config::Config;
@@ -11,6 +15,7 @@ use crate::state;
 use crate::util;
 
 mod assumer;
+mod main_credentials;
 
 pub fn run(profile: &str, config: &Config) {
     let error = util::styled_error_word();
@@ -29,9 +34,12 @@ pub fn run(profile: &str, config: &Config) {
 }
 
 fn run_raw(profile: &str, config: &Config) -> Result<(), String> {
-    let cred_file = CredentialsFile::read_default()?;
+    let mut cred_file = CredentialsFile::read_default()?;
 
     let mut state = state::State::read();
+
+    main_credentials::rotate_if_needed(config, &mut cred_file, &mut state)?;
+
     let mut assumer = RoleAssumer::new(
         config.region.clone(),
         cred_file,
@@ -66,13 +74,27 @@ fn print_profile(profile_name: &str, config: &Config) {
                 "fish" => {
                     print!("set -xg AWS_PROFILE {}; ", profile_name);
                     println!("set -l __awscredx_modify_prompt {}", config.modify_shell_prompt);
-                },
+                }
                 _ => {
                     print!("export AWS_PROFILE={}; ", profile_name);
                     println!("__awscredx_modify_prompt={}", config.modify_shell_prompt);
-                },
+                }
             }
         }
         None => println!("export AWS_PROFILE={}", profile_name)
     }
+}
+
+fn get_https_connector() -> Result<ProxyConnector<HttpsConnector<HttpConnector>>, String> {
+    let connector = HttpsConnector::new(2)
+        .expect("connector with 2 threads");
+    Ok(match util::get_https_proxy() {
+        Some(proxy_url) => {
+            let url = proxy_url.parse::<Uri>()
+                .map_err(|e| format!("cannot parse proxy URL({}): {}", &proxy_url, e))?;
+            let proxy = Proxy::new(Intercept::All, url);
+            ProxyConnector::from_proxy(connector, proxy).expect("proxy created")
+        }
+        None => ProxyConnector::new(connector).expect("transparent proxy created")
+    })
 }

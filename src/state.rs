@@ -1,12 +1,15 @@
-use serde::{Serialize, Deserialize};
 use std::fs;
 use std::path::PathBuf;
+
+use chrono::{DateTime, TimeZone, Utc};
+use serde::{Deserialize, Serialize};
+
 use crate::util;
-use chrono::{Utc, DateTime, TimeZone};
 
 #[derive(Deserialize, Serialize)]
 pub struct State {
     pub last_version_check_time: DateTime<Utc>,
+    pub last_credentials_rotation_time: Option<DateTime<Utc>>,
 }
 
 impl State {
@@ -17,6 +20,7 @@ impl State {
             }
             _ => Self {
                 last_version_check_time: Utc.timestamp(0, 0),
+                last_credentials_rotation_time: None,
             },
         }
     }

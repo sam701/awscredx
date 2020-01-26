@@ -40,6 +40,12 @@ role_arn = "arn:aws:iam::123456589014:role/K8sAdminRole"
 parent_profile = "prod"
 ```
 
+### Optional automatic access key rotation
+```toml
+# Uncomment the following line to enable automatic credentials rotation of the main profile every N days.
+# rotate_credentials_days = 7
+```
+
 ### Yubikey integration
 The MFA is read from your Yubikey so you do not need to type it.\
 ![prompt](./doc/yubikey.png)

@@ -34,6 +34,9 @@ region = "eu-central-1"
 # Session name used for role assumption.
 session_name = "awscredx"
 
+# Uncomment the following line to enable automatic credentials rotation of the main profile every N days.
+# rotate_credentials_days = 7
+
 [profiles]
 
 # You can specify profiles by either providing the role ARNs
