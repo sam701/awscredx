@@ -10,7 +10,7 @@ use crate::credentials::{CredentialsFile, ProfileName};
 
 pub struct RoleAssumer<'a> {
     region: Region,
-    store: CredentialsFile,
+    store: &'a mut CredentialsFile,
     config: &'a Config,
 }
 
@@ -31,7 +31,7 @@ impl From<&AwsCredentials> for Cred {
 }
 
 impl<'a> RoleAssumer<'a> {
-    pub fn new(region: Region, store: CredentialsFile, config: &'a Config) -> Self {
+    pub fn new(region: Region, store: &'a mut CredentialsFile, config: &'a Config) -> Self {
         Self {
             region,
             store,

@@ -35,14 +35,11 @@ pub fn run(profile: &str, config: &Config) {
 
 fn run_raw(profile: &str, config: &Config) -> Result<(), String> {
     let mut cred_file = CredentialsFile::read_default()?;
-
     let mut state = state::State::read();
-
-    main_credentials::rotate_if_needed(config, &mut cred_file, &mut state)?;
 
     let mut assumer = RoleAssumer::new(
         config.region.clone(),
-        cred_file,
+        &mut cred_file,
         config,
     );
     assumer.assume(profile)?;
@@ -52,6 +49,9 @@ fn run_raw(profile: &str, config: &Config) -> Result<(), String> {
         state.last_version_check_time = Utc::now();
         state.save()?;
     }
+
+    main_credentials::rotate_if_needed(config, &mut cred_file, &mut state)?;
+
     Ok(())
 }
 

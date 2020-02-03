@@ -1,22 +1,3 @@
-extern crate ansi_term;
-extern crate chrono;
-extern crate clap;
-extern crate custom_error;
-extern crate hyper;
-extern crate hyper_proxy;
-extern crate hyper_tls;
-extern crate linked_hash_map;
-extern crate reqwest;
-extern crate rusoto_core;
-extern crate rusoto_credential;
-extern crate rusoto_iam;
-extern crate rusoto_sts;
-extern crate serde;
-extern crate serde_json;
-extern crate serde_urlencoded;
-extern crate toml;
-extern crate webbrowser;
-
 use std::env;
 
 use ansi_term::{Color, Style};
