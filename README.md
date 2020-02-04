@@ -30,6 +30,13 @@ dev = "arn:aws:iam::123456589012:role/Admin"
 prod = "arn:aws:iam::123456589013:role/TestRole"
 ```
 
+### Web Console Sign-In URLs
+You can print the web console sign-in URL for the currently assumed profile.
+Or you can make `awscredx` directly open the sign-in URL in your default web browser.
+```bash
+awscredx web-console-signin --service ecs --open-in-browser
+```
+
 ### Role chaining
 You can assume a role `k8s-admin` from a role `prod` that is in turn assumed from your main account credentials.
 ```toml
