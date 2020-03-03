@@ -157,10 +157,8 @@ fn print_prompt() {
                 let duration = ex - Utc::now();
                 let expiration_style = if duration > Duration::minutes(10) {
                     Style::new().fg(Color::Green)
-                } else if duration > Duration::minutes(5) {
-                    Style::new().fg(Color::Yellow).bold()
                 } else {
-                    Style::new().fg(Color::Red).bold()
+                    Style::new().fg(Color::Yellow).bold()
                 };
                 if duration > Duration::zero() {
                     print!("[{} {}]",
@@ -169,7 +167,11 @@ fn print_prompt() {
                     )
                 }
             }
-            Ok(None) => {}
+            Ok(None) =>
+                print!("[{} {}]",
+                       Style::new().fg(Color::White).bold().paint(profile).to_string(),
+                       Style::new().fg(Color::Red).bold().paint("expired").to_string(),
+                ),
             Err(e) => eprintln!("ERROR: {}", e)
         }
     }
