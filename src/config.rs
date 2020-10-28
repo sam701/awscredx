@@ -46,7 +46,6 @@ pub enum AssumeSubject {
 
 pub const CONFIG_FILE_PATH: &str = "~/.config/awscredx/config.toml";
 
-
 impl Config {
     pub fn read() -> Result<Option<Config>, String> {
         let home = env::var("HOME").expect("HOME is not set");
@@ -83,7 +82,9 @@ impl Config {
 
         let rc: RawConfig = toml::from_str(&content)
             .map_err(|e| format!("Cannot parse TOML file {}: {}", &path, e))?;
-        let mfa = rc.mfa_profile.unwrap_or(format!("{}-mfa", &rc.main_profile));
+        let mfa = rc
+            .mfa_profile
+            .unwrap_or(format!("{}-mfa", &rc.main_profile));
         let region = match rc.region {
             Some(r) => Region::from_str(&r).map_err(|_e| format!("Bad AWS region: {}", r))?,
             None => Region::EuCentral1,
@@ -93,15 +94,24 @@ impl Config {
             mfa_serial_number: rc.mfa_serial_number,
             mfa_command: rc.mfa_command,
             mfa_profile: ProfileName::new(mfa),
-            profiles: rc.profiles.into_iter().map(|(name, value)| (name, match value {
-                ProfileValue::Arn(role_arn) => Profile {
-                    role_arn,
-                    parent_profile: None,
-                    duration_sec: None,
-                    color: None,
-                },
-                ProfileValue::ProfileConfig(profile) => profile,
-            })).collect(),
+            profiles: rc
+                .profiles
+                .into_iter()
+                .map(|(name, value)| {
+                    (
+                        name,
+                        match value {
+                            ProfileValue::Arn(role_arn) => Profile {
+                                role_arn,
+                                parent_profile: None,
+                                duration_sec: None,
+                                color: None,
+                            },
+                            ProfileValue::ProfileConfig(profile) => profile,
+                        },
+                    )
+                })
+                .collect(),
             check_new_version_interval_days: rc.check_new_version_interval_days.unwrap_or(7),
             modify_shell_prompt: rc.modify_shell_prompt.unwrap_or(true),
             region,
@@ -115,7 +125,8 @@ impl Config {
         if profile == &self.main_profile || profile == &self.mfa_profile {
             Some(&self.main_profile)
         } else {
-            self.profiles.get(profile)
+            self.profiles
+                .get(profile)
                 .map(|x| x.parent_profile.as_ref().unwrap_or(&self.mfa_profile))
         }
     }
@@ -127,20 +138,21 @@ impl Config {
                 token_code: self.read_token_code()?,
             })
         } else {
-            self.profiles.get(profile)
-                .map(|p| AssumeSubject::Role {
-                    role_arn: p.role_arn.clone(),
-                    session_name: self.session_name.clone(),
-                })
+            self.profiles.get(profile).map(|p| AssumeSubject::Role {
+                role_arn: p.role_arn.clone(),
+                session_name: self.session_name.clone(),
+            })
         };
         Ok(res)
     }
 
     fn read_token_code(&self) -> Result<String, String> {
-        let validate_code = |code: &str| if code.len() == 6 && code.chars().all(char::is_numeric) {
-            Ok(code.to_owned())
-        } else {
-            Err(format!("'{}' is not a valid MFA code", code))
+        let validate_code = |code: &str| {
+            if code.len() == 6 && code.chars().all(char::is_numeric) {
+                Ok(code.to_owned())
+            } else {
+                Err(format!("'{}' is not a valid MFA code", code))
+            }
         };
 
         match &self.mfa_command {
@@ -156,7 +168,10 @@ impl Config {
                 if output.status.success() {
                     let trimmed = stdout_raw.trim();
                     if trimmed.is_empty() {
-                        Err(format!("cannot get MFA code\nResponse from MFA command:\n{}\n{}", &stdout_raw, &stderr_raw))
+                        Err(format!(
+                            "cannot get MFA code\nResponse from MFA command:\n{}\n{}",
+                            &stdout_raw, &stderr_raw
+                        ))
                     } else {
                         validate_code(trimmed)
                     }
@@ -167,7 +182,9 @@ impl Config {
             None => {
                 eprint!("MFA token: ");
                 let mut s = String::with_capacity(10);
-                stdin().read_line(&mut s).map_err(|e| format!("cannot read MFA token: {}", e))?;
+                stdin()
+                    .read_line(&mut s)
+                    .map_err(|e| format!("cannot read MFA token: {}", e))?;
                 let trimmed = s.trim_end();
                 validate_code(trimmed)
             }
@@ -179,7 +196,9 @@ impl Config {
 fn parse_config() {
     const TEST_CONFIG_PATH: &str = "./test.config";
 
-    fs::write(TEST_CONFIG_PATH, r#"
+    fs::write(
+        TEST_CONFIG_PATH,
+        r#"
     main_profile = 'abc'
     mfa_serial_number = 'mfa2'
 
@@ -188,7 +207,9 @@ fn parse_config() {
     prof2 = 'arn2'
     [profiles.prof3]
     role_arn = "arn3"
-    parent_profile="prof2""#).unwrap();
+    parent_profile="prof2""#,
+    )
+    .unwrap();
 
     let cfg = Config::read_raw(TEST_CONFIG_PATH).unwrap().unwrap();
     println!("cfg = {:?}", &cfg);

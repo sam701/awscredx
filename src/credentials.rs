@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Error, Formatter};
 use std::fs::{self, File};
-use std::io::BufReader;
 use std::io::prelude::*;
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -58,8 +58,18 @@ impl Display for CredentialsProfile {
         } else {
             writeln!(f, "[{}]", &self.profile_name)?;
         }
-        writeln!(f, "{} = {}", ACCESS_KEY_ID, self.credentials.aws_access_key_id())?;
-        writeln!(f, "{} = {}", SECRET_ACCESS_KEY, self.credentials.aws_secret_access_key())?;
+        writeln!(
+            f,
+            "{} = {}",
+            ACCESS_KEY_ID,
+            self.credentials.aws_access_key_id()
+        )?;
+        writeln!(
+            f,
+            "{} = {}",
+            SECRET_ACCESS_KEY,
+            self.credentials.aws_secret_access_key()
+        )?;
         if let Some(token) = self.credentials.token() {
             writeln!(f, "{} = {}", SESSION_TOKEN, token)?;
         }
@@ -85,7 +95,6 @@ impl CredentialsFile {
             _ => return Ok(cf),
         };
         let br = BufReader::new(&file);
-
 
         let expiraitons = CredentialExpirations::read(&cf.expirations_path)?;
         let mut props: HashMap<String, String> = HashMap::new();
@@ -113,9 +122,18 @@ impl CredentialsFile {
         Ok(cf)
     }
 
-    fn add_credentials(&mut self, profile_name: ProfileName, props: &mut HashMap<String, String>, expirations: &CredentialExpirations) -> Result<(), String> {
-        let mut get_key = |key: &str| props.remove(key)
-            .ok_or(format!("Profile {} does not have property {}", &profile_name, key));
+    fn add_credentials(
+        &mut self,
+        profile_name: ProfileName,
+        props: &mut HashMap<String, String>,
+        expirations: &CredentialExpirations,
+    ) -> Result<(), String> {
+        let mut get_key = |key: &str| {
+            props.remove(key).ok_or(format!(
+                "Profile {} does not have property {}",
+                &profile_name, key
+            ))
+        };
         let key_id = get_key(ACCESS_KEY_ID)?;
         let key_secret = get_key(SECRET_ACCESS_KEY)?;
         let token = props.remove(SESSION_TOKEN);
@@ -137,12 +155,7 @@ impl CredentialsFile {
 
         self.profiles.push(CredentialsProfile {
             profile_name,
-            credentials: AwsCredentials::new(
-                key_id,
-                key_secret,
-                token,
-                exp,
-            ),
+            credentials: AwsCredentials::new(key_id, key_secret, token, exp),
         });
         Ok(())
     }
@@ -168,24 +181,26 @@ impl CredentialsFile {
         for profile in &self.profiles {
             writeln!(&file, "{}", profile).expect("Cannot write credentials profile");
             if let Some(exp) = profile.credentials.expires_at() {
-                expiraitons.0.insert(profile.profile_name.clone(), exp.clone());
+                expiraitons
+                    .0
+                    .insert(profile.profile_name.clone(), exp.clone());
             }
         }
         expiraitons.write(&self.expirations_path)
     }
 
     pub fn get_credentials(&self, profile_name: &ProfileName) -> Option<&AwsCredentials> {
-        self.profiles.iter()
+        self.profiles
+            .iter()
             .find(|p| p.profile_name == *profile_name)
             .map(|p| &p.credentials)
     }
 
-    pub fn get_current_credentials_data(&self) -> impl Iterator<Item=CredentialsData> + '_ {
-        self.profiles.iter()
-            .map(|x| CredentialsData {
-                profile_name: &x.profile_name.0,
-                expires_at: x.credentials.expires_at(),
-            })
+    pub fn get_current_credentials_data(&self) -> impl Iterator<Item = CredentialsData> + '_ {
+        self.profiles.iter().map(|x| CredentialsData {
+            profile_name: &x.profile_name.0,
+            expires_at: x.credentials.expires_at(),
+        })
     }
 }
 
@@ -202,7 +217,10 @@ struct Property<'a>(&'a str, &'a str);
 fn read_property(line: &str) -> Option<Property> {
     let parts: Vec<&str> = line.splitn(2, '=').collect();
     if parts.len() == 2 {
-        Some(Property(parts[0].trim(), parts[1].trim_matches(|c| c == ' ' || c == '"')))
+        Some(Property(
+            parts[0].trim(),
+            parts[1].trim_matches(|c| c == ' ' || c == '"'),
+        ))
     } else {
         None
     }
@@ -212,10 +230,37 @@ fn read_property(line: &str) -> Option<Property> {
 fn read_credentials() {
     let mut cred_file = CredentialsFile::read("./test", "./test.expirations.toml").unwrap();
     let now = Utc::now();
-    cred_file.put_credentials(ProfileName::new("test1"), AwsCredentials::new("abc2", "cde2", Some("nice".to_owned()), Some(now + Duration::minutes(10))));
-    cred_file.put_credentials(ProfileName::new("test2"), AwsCredentials::new("k2", "s2", Some("token1".to_owned()), Some(now - Duration::minutes(10))));
-    cred_file.put_credentials(ProfileName::new("test3"), AwsCredentials::new("k2", "s2", Some("token1".to_owned()), None));
-    cred_file.put_credentials(ProfileName::new("test4"), AwsCredentials::new("k4", "s4", Some("token=4".to_owned()), Some(now + Duration::minutes(10))));
+    cred_file.put_credentials(
+        ProfileName::new("test1"),
+        AwsCredentials::new(
+            "abc2",
+            "cde2",
+            Some("nice".to_owned()),
+            Some(now + Duration::minutes(10)),
+        ),
+    );
+    cred_file.put_credentials(
+        ProfileName::new("test2"),
+        AwsCredentials::new(
+            "k2",
+            "s2",
+            Some("token1".to_owned()),
+            Some(now - Duration::minutes(10)),
+        ),
+    );
+    cred_file.put_credentials(
+        ProfileName::new("test3"),
+        AwsCredentials::new("k2", "s2", Some("token1".to_owned()), None),
+    );
+    cred_file.put_credentials(
+        ProfileName::new("test4"),
+        AwsCredentials::new(
+            "k4",
+            "s4",
+            Some("token=4".to_owned()),
+            Some(now + Duration::minutes(10)),
+        ),
+    );
     cred_file.write().unwrap();
 
     cred_file = CredentialsFile::read("./test", "./test.expirations.toml").unwrap();
@@ -224,21 +269,47 @@ fn read_credentials() {
     let pn_test3 = ProfileName::new("test3");
     let pn_test4 = ProfileName::new("test4");
     assert!(cred_file.get_credentials(&pn_test2).is_none());
-    assert_eq!(cred_file.get_credentials(&pn_test1).unwrap().aws_access_key_id(), "abc2");
-    assert_eq!(cred_file.get_credentials(&pn_test1).unwrap().aws_secret_access_key(), "cde2");
+    assert_eq!(
+        cred_file
+            .get_credentials(&pn_test1)
+            .unwrap()
+            .aws_access_key_id(),
+        "abc2"
+    );
+    assert_eq!(
+        cred_file
+            .get_credentials(&pn_test1)
+            .unwrap()
+            .aws_secret_access_key(),
+        "cde2"
+    );
     let token = Some("nice".to_owned());
-    assert_eq!(cred_file.get_credentials(&pn_test1).unwrap().token(), &token);
+    assert_eq!(
+        cred_file.get_credentials(&pn_test1).unwrap().token(),
+        &token
+    );
     let exp = Some(now + Duration::minutes(10));
-    assert_eq!(cred_file.get_credentials(&pn_test1).unwrap().expires_at(), &exp);
+    assert_eq!(
+        cred_file.get_credentials(&pn_test1).unwrap().expires_at(),
+        &exp
+    );
     assert!(cred_file.get_credentials(&pn_test3).is_none());
-    assert_eq!(cred_file.get_credentials(&pn_test4).unwrap().token().as_ref().unwrap().as_str(), "token=4");
+    assert_eq!(
+        cred_file
+            .get_credentials(&pn_test4)
+            .unwrap()
+            .token()
+            .as_ref()
+            .unwrap()
+            .as_str(),
+        "token=4"
+    );
 
     println!("{:?}", &cred_file);
 
     fs::remove_file(&cred_file.path).unwrap();
     fs::remove_file(&cred_file.expirations_path).unwrap();
 }
-
 
 pub struct CredentialExpirations(HashMap<ProfileName, DateTime<Utc>>);
 

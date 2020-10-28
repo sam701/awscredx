@@ -15,9 +15,7 @@ pub struct State {
 impl State {
     pub fn read() -> Self {
         match fs::read_to_string(state_file_path()) {
-            Ok(c) => {
-                toml::from_str(&c).expect("valid state")
-            }
+            Ok(c) => toml::from_str(&c).expect("valid state"),
             _ => Self {
                 last_version_check_time: Utc.timestamp(0, 0),
                 last_credentials_rotation_time: None,

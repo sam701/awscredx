@@ -1,9 +1,9 @@
-use std::error::Error;
-
 use chrono::{Duration, Utc};
 use rusoto_core::{HttpClient, Region};
 use rusoto_credential::{AwsCredentials, StaticProvider};
-use rusoto_sts::{AssumeRoleRequest, GetSessionTokenRequest, NewAwsCredsForStsCreds, Sts, StsClient};
+use rusoto_sts::{
+    AssumeRoleRequest, GetSessionTokenRequest, NewAwsCredsForStsCreds, Sts, StsClient,
+};
 
 use crate::config::{AssumeSubject, Config};
 use crate::credentials::{CredentialsFile, ProfileName};
@@ -48,20 +48,27 @@ impl<'a> RoleAssumer<'a> {
     fn profile_credentials(&mut self, profile: &ProfileName) -> Result<Cred, String> {
         match self.store.get_credentials(&profile) {
             Some(cred) => match cred.expires_at() {
-                Some(exp) if *exp - Utc::now() < Duration::minutes(10) => // TODO: make the time configurable
-                    self.get_new_credentials(profile),
+                Some(exp) if *exp - Utc::now() < Duration::minutes(10) =>
+                // TODO: make the time configurable
+                {
+                    self.get_new_credentials(profile)
+                }
                 _ => Ok(cred.into()),
-            }
+            },
             None => self.get_new_credentials(profile),
         }
     }
 
     fn get_new_credentials(&mut self, profile: &ProfileName) -> Result<Cred, String> {
-        let parent = self.config.parent_profile(profile)
+        let parent = self
+            .config
+            .parent_profile(profile)
             .ok_or(format!("profile '{}' does not exist", &profile))?
             .clone();
         let parent_cred = self.profile_credentials(&parent)?;
-        let sub = self.config.assume_subject(profile)?
+        let sub = self
+            .config
+            .assume_subject(profile)?
             .ok_or(format!("cannot get assume subject for profile {}", profile))?;
         let parent_client = create_sts_client(parent_cred, self.region.clone())?;
         let new_cred = assume_subject(&parent_client, sub)?;
@@ -73,22 +80,36 @@ impl<'a> RoleAssumer<'a> {
 
 fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCredentials, String> {
     let cred = match subject {
-        AssumeSubject::Role { role_arn, session_name } => {
+        AssumeSubject::Role {
+            role_arn,
+            session_name,
+        } => {
             let mut req = AssumeRoleRequest::default();
             req.role_arn = role_arn;
             req.role_session_name = session_name;
-            let result = client.assume_role(req).sync()
+            let result = client
+                .assume_role(req)
+                .sync()
                 .map_err(|e| format!("unable to assume role: {}", e))?;
-            result.credentials.expect("STS successful response contains None credentials")
+            result
+                .credentials
+                .expect("STS successful response contains None credentials")
         }
-        AssumeSubject::MfaSession { serial_number, token_code } => {
+        AssumeSubject::MfaSession {
+            serial_number,
+            token_code,
+        } => {
             let mut req = GetSessionTokenRequest::default();
             req.serial_number = Some(serial_number);
             req.token_code = Some(token_code);
-            let result = client.get_session_token(req).sync()
-                .map_err(|e| format!("Unable to get MFA session token: {}", e.description()))?;
+            let result = client
+                .get_session_token(req)
+                .sync()
+                .map_err(|e| format!("Unable to get MFA session token: {}", e))?;
 
-            result.credentials.expect("STS successful response contains None credentials")
+            result
+                .credentials
+                .expect("STS successful response contains None credentials")
         }
     };
 
@@ -96,16 +117,10 @@ fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCrede
         .map_err(|e| format!("Cannot create AwsCredentials from STS credentials: {}", e))
 }
 
-
 fn create_sts_client(credentials: Cred, region: Region) -> Result<StsClient, String> {
     Ok(StsClient::new_with(
         HttpClient::from_connector(super::get_https_connector()?),
-        StaticProvider::new(
-            credentials.key,
-            credentials.secret,
-            credentials.token,
-            None,
-        ),
+        StaticProvider::new(credentials.key, credentials.secret, credentials.token, None),
         region,
     ))
 }

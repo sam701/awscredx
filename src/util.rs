@@ -1,8 +1,7 @@
+use ansi_term::{Color, Style};
+use reqwest::Proxy;
 use std::env;
 use std::path::PathBuf;
-use reqwest::Proxy;
-use ansi_term::{Style, Color};
-
 
 pub fn path_to_absolute(path: &str) -> PathBuf {
     let home = env::var("HOME").expect("HOME is not set");
@@ -29,8 +28,10 @@ pub fn get_https_proxy() -> Option<String> {
 pub fn get_https_client() -> Result<reqwest::Client, String> {
     let mut builder = reqwest::ClientBuilder::new();
     if let Some(proxy_url) = get_https_proxy() {
-        builder = builder.proxy(Proxy::all(&proxy_url)
-            .map_err(|e| format!("cannot create proxy from URL({}): {}", &proxy_url, e))?);
+        builder = builder.proxy(
+            Proxy::all(&proxy_url)
+                .map_err(|e| format!("cannot create proxy from URL({}): {}", &proxy_url, e))?,
+        );
     }
     builder
         .build()

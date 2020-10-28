@@ -1,9 +1,9 @@
-use std::fs::{self, File};
-use std::io::prelude::*;
-use std::{env, process};
-use std::process::Command;
 use crate::init::context::JobContext;
 use crate::util;
+use std::fs::{self, File};
+use std::io::prelude::*;
+use std::process::Command;
+use std::{env, process};
 
 mod context;
 
@@ -27,9 +27,10 @@ fn run_jobs(ctx: &JobContext) -> Result<(), String> {
     ensure_tool_in_path()?;
 
     if ctx.update {
-        println!("{} {}",
-                 ctx.styles.helpers.paint("Updating scripts to version"),
-                 ctx.styles.failure.paint(crate::version::VERSION),
+        println!(
+            "{} {}",
+            ctx.styles.helpers.paint("Updating scripts to version"),
+            ctx.styles.failure.paint(crate::version::VERSION),
         );
     }
 
@@ -60,17 +61,23 @@ struct JobReport {
 }
 
 fn print_report(report: &JobReport, context: &JobContext) {
-    print!(" {} {}\n   {} ",
-           context.styles.helpers.paint("-"),
-           &report.title,
-           context.styles.helpers.paint("→"));
+    print!(
+        " {} {}\n   {} ",
+        context.styles.helpers.paint("-"),
+        &report.title,
+        context.styles.helpers.paint("→")
+    );
     match report.status {
-        JobStatus::Success =>
-            println!("{}", context.styles.success.paint(
-                if context.update { "updated" } else { "created" }
-            )),
-        JobStatus::WasAlreadyDone =>
-            println!("{}", context.styles.already_done.paint("already exists")),
+        JobStatus::Success => println!(
+            "{}",
+            context
+                .styles
+                .success
+                .paint(if context.update { "updated" } else { "created" })
+        ),
+        JobStatus::WasAlreadyDone => {
+            println!("{}", context.styles.already_done.paint("already exists"))
+        }
     }
 }
 
@@ -89,61 +96,110 @@ fn ensure_tool_in_path() -> Result<(), String> {
 }
 
 fn create_config_dir(ctx: &JobContext) -> Result<JobReport, String> {
-    let title = format!("Create configuration directory '{}'",
-                        ctx.styles.path.paint(ctx.config_dir.to_str().unwrap()));
+    let title = format!(
+        "Create configuration directory '{}'",
+        ctx.styles.path.paint(ctx.config_dir.to_str().unwrap())
+    );
     if ctx.config_dir.exists() {
-        Ok(JobReport { title, status: JobStatus::WasAlreadyDone })
+        Ok(JobReport {
+            title,
+            status: JobStatus::WasAlreadyDone,
+        })
     } else {
-        fs::create_dir_all(&ctx.config_dir)
-            .map_err(|e| format!("cannot create directory {}: {}", ctx.config_dir.display(), e))?;
+        fs::create_dir_all(&ctx.config_dir).map_err(|e| {
+            format!(
+                "cannot create directory {}: {}",
+                ctx.config_dir.display(),
+                e
+            )
+        })?;
         util::set_permissions(&ctx.config_dir, 0o700);
-        Ok(JobReport { title, status: JobStatus::Success })
+        Ok(JobReport {
+            title,
+            status: JobStatus::Success,
+        })
     }
 }
 
 fn create_data_home_dir(ctx: &JobContext) -> Result<JobReport, String> {
-    let title = format!("Create data directory '{}'",
-                        ctx.styles.path.paint(ctx.data_dir.to_str().unwrap()));
+    let title = format!(
+        "Create data directory '{}'",
+        ctx.styles.path.paint(ctx.data_dir.to_str().unwrap())
+    );
     if ctx.data_dir.exists() {
-        Ok(JobReport { title, status: JobStatus::WasAlreadyDone })
+        Ok(JobReport {
+            title,
+            status: JobStatus::WasAlreadyDone,
+        })
     } else {
         fs::create_dir_all(&ctx.data_dir)
             .map_err(|e| format!("cannot create directory {}: {}", ctx.data_dir.display(), e))?;
         util::set_permissions(&ctx.data_dir, 0o700);
-        Ok(JobReport { title, status: JobStatus::Success })
+        Ok(JobReport {
+            title,
+            status: JobStatus::Success,
+        })
     }
 }
 
 fn create_config_file(ctx: &JobContext) -> Result<JobReport, String> {
-    let title = format!("Create configuration file '{}'",
-                        ctx.styles.path.paint(ctx.config_file.to_str().unwrap()));
+    let title = format!(
+        "Create configuration file '{}'",
+        ctx.styles.path.paint(ctx.config_file.to_str().unwrap())
+    );
     if ctx.config_file.exists() {
-        Ok(JobReport { title, status: JobStatus::WasAlreadyDone })
+        Ok(JobReport {
+            title,
+            status: JobStatus::WasAlreadyDone,
+        })
     } else {
-        let file = File::create(&ctx.config_file)
-            .map_err(|e| format!("cannot create configuration file {}: {}", ctx.config_file.display(), e))?;
+        let file = File::create(&ctx.config_file).map_err(|e| {
+            format!(
+                "cannot create configuration file {}: {}",
+                ctx.config_file.display(),
+                e
+            )
+        })?;
         let content = include_str!("config-template.toml");
         write!(&file, "{}", content)
             .map_err(|e| format!("cannot write configuration file: {}", e))?;
         util::set_permissions(&ctx.config_file, 0o600);
-        Ok(JobReport { title, status: JobStatus::Success })
+        Ok(JobReport {
+            title,
+            status: JobStatus::Success,
+        })
     }
 }
 
 fn write_shell_script(ctx: &JobContext) -> Result<JobReport, String> {
     let template_content = ctx.shell_script_content();
 
-    let title = format!("Create shell script '{}'",
-                        ctx.styles.path.paint(ctx.shell_config_script.to_str().unwrap()));
+    let title = format!(
+        "Create shell script '{}'",
+        ctx.styles
+            .path
+            .paint(ctx.shell_config_script.to_str().unwrap())
+    );
     if !ctx.shell_config_script.exists() || outdated_script() {
-        let file = File::create(&ctx.shell_config_script)
-            .map_err(|e| format!("cannot create configuration file {}: {}", ctx.shell_config_script.display(), e))?;
+        let file = File::create(&ctx.shell_config_script).map_err(|e| {
+            format!(
+                "cannot create configuration file {}: {}",
+                ctx.shell_config_script.display(),
+                e
+            )
+        })?;
         util::set_permissions(&ctx.shell_config_script, 0o600);
         write!(&file, "{}", template_content)
             .map_err(|e| format!("cannot write configuration file: {}", e))?;
-        Ok(JobReport { title, status: JobStatus::Success })
+        Ok(JobReport {
+            title,
+            status: JobStatus::Success,
+        })
     } else {
-        Ok(JobReport { title, status: JobStatus::WasAlreadyDone })
+        Ok(JobReport {
+            title,
+            status: JobStatus::WasAlreadyDone,
+        })
     }
 }
 
@@ -155,31 +211,43 @@ pub fn outdated_script() -> bool {
         .arg("echo $AWSCREDX_SCRIPT_VERSION")
         .output()
         .expect("failed to run shell");
-    let version = String::from_utf8(output.stdout)
-        .expect("sh output is not UTF-8");
+    let version = String::from_utf8(output.stdout).expect("sh output is not UTF-8");
     let version_trimmed = version.trim();
 
     version_trimmed != crate::version::VERSION
 }
 
 fn set_up_script_sources(ctx: &JobContext) -> Result<JobReport, String> {
-    let home_based_config_path = context::home_based_path(ctx.shell_config_script.to_str().unwrap());
+    let home_based_config_path =
+        context::home_based_path(ctx.shell_config_script.to_str().unwrap());
     let source_line = format!("source {}", &home_based_config_path);
 
     let must_attach = match fs::read_to_string(&ctx.shell_init_script) {
-        Ok(content) => content.lines().find(|line| line.starts_with(&source_line)).is_none(),
+        Ok(content) => content
+            .lines()
+            .find(|line| line.starts_with(&source_line))
+            .is_none(),
         Err(_) => true,
     };
 
-    let title = format!("Add 'source {}' to {}",
-                        &home_based_config_path,
-                        ctx.styles.path.paint(ctx.shell_init_script.to_str().unwrap()));
+    let title = format!(
+        "Add 'source {}' to {}",
+        &home_based_config_path,
+        ctx.styles
+            .path
+            .paint(ctx.shell_init_script.to_str().unwrap())
+    );
     if must_attach {
         let shell_script_parent = ctx.shell_init_script.parent().unwrap();
 
         if !shell_script_parent.exists() {
-            fs::create_dir_all(shell_script_parent)
-                .map_err(|e| format!("cannot create directory {}: {}", shell_script_parent.display(), e))?;
+            fs::create_dir_all(shell_script_parent).map_err(|e| {
+                format!(
+                    "cannot create directory {}: {}",
+                    shell_script_parent.display(),
+                    e
+                )
+            })?;
         }
 
         let f = fs::OpenOptions::new()
@@ -187,13 +255,30 @@ fn set_up_script_sources(ctx: &JobContext) -> Result<JobReport, String> {
             .create(true)
             .append(true)
             .open(&ctx.shell_init_script)
-            .map_err(|e| format!("cannot open config file {}: {}", ctx.shell_init_script.display(), e))?;
+            .map_err(|e| {
+                format!(
+                    "cannot open config file {}: {}",
+                    ctx.shell_init_script.display(),
+                    e
+                )
+            })?;
 
-        writeln!(&f, "{}\n", &source_line)
-            .map_err(|e| format!("cannot write into config file {}: {}", ctx.shell_init_script.display(), e))?;
+        writeln!(&f, "{}\n", &source_line).map_err(|e| {
+            format!(
+                "cannot write into config file {}: {}",
+                ctx.shell_init_script.display(),
+                e
+            )
+        })?;
 
-        Ok(JobReport { title, status: JobStatus::Success })
+        Ok(JobReport {
+            title,
+            status: JobStatus::Success,
+        })
     } else {
-        Ok(JobReport { title, status: JobStatus::WasAlreadyDone })
+        Ok(JobReport {
+            title,
+            status: JobStatus::WasAlreadyDone,
+        })
     }
 }

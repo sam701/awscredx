@@ -1,7 +1,7 @@
+use crate::{config, util};
+use ansi_term::{Color, Style};
 use std::env;
 use std::path::{Path, PathBuf};
-use crate::{config, util};
-use ansi_term::{Style, Color};
 
 pub struct JobContext {
     pub home_dir: String,
@@ -25,7 +25,9 @@ impl JobContext {
         let shell = current_shell();
         let config_file = util::path_to_absolute(config::CONFIG_FILE_PATH);
         let config_dir = config_file.parent().unwrap().to_path_buf();
-        let data_dir = Path::new(&home_dir).join(".local/share/awscredx").to_path_buf();
+        let data_dir = Path::new(&home_dir)
+            .join(".local/share/awscredx")
+            .to_path_buf();
         let shell_config_script = data_dir.join(shell_script(&shell)).to_path_buf();
         let shell_init_script = shell_init_script_path(&shell);
         let update = config_file.exists() && shell_config_script.exists();
@@ -70,7 +72,7 @@ fn current_shell() -> String {
             let x1 = *x.last().unwrap();
             x1.to_owned()
         }
-        None => "bash".to_owned()
+        None => "bash".to_owned(),
     }
 }
 
@@ -79,12 +81,13 @@ fn shell_init_script_path(shell: &str) -> PathBuf {
         "~/.bashrc",
         "~/.bash_profile",
         "~/.bash_login",
-        "~/.profile"
+        "~/.profile",
     ];
-    let mut abs_bash: Vec<PathBuf> = bash_files.iter()
-        .map(|x| util::path_to_absolute(x)).collect();
-    let bash_file_index = first_file_that_exists_index(&abs_bash)
-        .unwrap_or(0);
+    let mut abs_bash: Vec<PathBuf> = bash_files
+        .iter()
+        .map(|x| util::path_to_absolute(x))
+        .collect();
+    let bash_file_index = first_file_that_exists_index(&abs_bash).unwrap_or(0);
     match shell {
         "fish" => util::path_to_absolute("~/.config/fish/config.fish"),
         "zsh" => util::path_to_absolute("~/.zshrc"),
@@ -100,8 +103,7 @@ fn shell_script(shell: &str) -> &str {
 }
 
 fn first_file_that_exists_index(paths: &[PathBuf]) -> Option<usize> {
-    paths.iter()
-        .position(|p| p.exists())
+    paths.iter().position(|p| p.exists())
 }
 
 pub fn home_based_path(path: &str) -> String {

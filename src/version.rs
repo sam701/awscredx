@@ -27,8 +27,11 @@ pub struct PublishedVersion {
 impl Display for PublishedVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         f.pad("")?;
-        writeln!(f, "New version {} is available.",
-                 Style::new().fg(Color::Yellow).bold().paint(&self.tag_name))?;
+        writeln!(
+            f,
+            "New version {} is available.",
+            Style::new().fg(Color::Yellow).bold().paint(&self.tag_name)
+        )?;
         f.pad("")?;
         writeln!(f, "Release notes: {}", &self.html_url)?;
         f.pad("")?;
@@ -40,12 +43,18 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 const TRAVIS_OS_NAME_OPT: Option<&str> = option_env!("TRAVIS_OS_NAME");
 
 pub fn print_version() {
-    println!("awscredx {}", Style::new().fg(Color::White).bold().paint(VERSION));
+    println!(
+        "awscredx {}",
+        Style::new().fg(Color::White).bold().paint(VERSION)
+    );
     match check_new_version() {
         Ok(Some(pv)) => println!("{:>2}", &pv),
         Ok(None) => {}
-        Err(e) => println!("{}: {}",
-                           Style::new().fg(Color::Red).bold().paint("ERROR"), e)
+        Err(e) => println!(
+            "{}: {}",
+            Style::new().fg(Color::Red).bold().paint("ERROR"),
+            e
+        ),
     }
 }
 
@@ -75,7 +84,8 @@ pub fn check_new_version() -> Result<Option<PublishedVersion>, String> {
 
 fn get_download_url(assets: Vec<Asset>) -> Option<String> {
     let osn = os_name();
-    assets.into_iter()
+    assets
+        .into_iter()
         .find(|a| osn == extract_os(&a.name))
         .map(|a| a.browser_download_url)
 }
