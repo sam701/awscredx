@@ -37,6 +37,9 @@ pub fn run(profile: &str, config: &Config) {
 
 fn run_raw(profile: &str, config: &Config) -> Result<(), String> {
     let mut cred_file = CredentialsFile::read_default()?;
+    if cred_file.get_credentials(&config.main_profile).is_none() {
+        return Err(format!("You specified main_profile=\"{prof}\" but there is no profile with this name in your credentials file ", prof = &config.main_profile));
+    }
     let mut state = state::State::read();
 
     let mut assumer = RoleAssumer::new(config.region.clone(), &mut cred_file, config);
