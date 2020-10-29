@@ -53,7 +53,7 @@ const SESSION_TOKEN: &str = "aws_session_token";
 
 impl Display for CredentialsProfile {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        if self.profile_name.as_ref().contains(" ") {
+        if self.profile_name.as_ref().contains(' ') {
             writeln!(f, "[\"{}\"]", &self.profile_name)?;
         } else {
             writeln!(f, "[{}]", &self.profile_name)?;
@@ -181,9 +181,7 @@ impl CredentialsFile {
         for profile in &self.profiles {
             writeln!(&file, "{}", profile).expect("Cannot write credentials profile");
             if let Some(exp) = profile.credentials.expires_at() {
-                expiraitons
-                    .0
-                    .insert(profile.profile_name.clone(), exp.clone());
+                expiraitons.0.insert(profile.profile_name.clone(), *exp);
             }
         }
         expiraitons.write(&self.expirations_path)
@@ -205,7 +203,7 @@ impl CredentialsFile {
 }
 
 fn read_profile_name(line: &str) -> Option<&str> {
-    if line.chars().nth(0)? == '[' {
+    if line.chars().next()? == '[' {
         Some(line.trim_matches(|c| "[ ]\"".contains(c)))
     } else {
         None

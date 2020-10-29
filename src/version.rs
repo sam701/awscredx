@@ -70,7 +70,7 @@ pub fn check_new_version() -> Result<Option<PublishedVersion>, String> {
         .json()
         .map_err(|e| format!("cannot decode github version response: {}", e))?;
 
-    if &github_version.tag_name == crate::version::VERSION {
+    if github_version.tag_name == crate::version::VERSION {
         Ok(None)
     } else {
         Ok(Some(PublishedVersion {

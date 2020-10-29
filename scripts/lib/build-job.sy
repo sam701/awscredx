@@ -1,0 +1,33 @@
+let cfg = import "./config.sy"
+
+let runner_map = {
+    linux: "ubuntu-latest"
+    macos: "macos-latest"
+}
+
+in
+
+(os) => {
+    "runs-on": runner_map[os]
+    steps: [
+        {uses: "actions/checkout@v2"},
+        {
+            uses: "actions-rs/toolchain@v1",
+            with: {toolchain: "stable"}
+        },
+        {
+            run: "
+            cargo build --release
+            cd target/release
+            zip ${cfg.bin_name}-${os}.zip ${cfg.bin_name}
+            ".unindent().trim()
+        },
+        {
+            uses: "actions/upload-artifact@v2",
+            with: {
+                name: "${os}-bin"
+                path: "target/release/${cfg.bin_name}-${os}.zip"
+            }
+        }
+    ]
+}

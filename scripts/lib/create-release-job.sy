@@ -1,0 +1,41 @@
+let cfg = import "./config.sy"
+let github_token = {GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'}
+
+let download_artifact = (os) => {
+    name: "Downloads ${os}-bin"
+    uses: "actions/download-artifact@v2"
+    with: {name: "${os}-bin"}
+}
+
+let upload_artifact = (os) => {
+    name: "Upload ${os}-bin"
+    uses: "actions/upload-release-asset@v1"
+    env: github_token
+    with: {
+        upload_url: '${{ steps.create_release.outputs.upload_url }}'
+        asset_path: "${cfg.bin_name}-${os}.zip"
+        asset_name: "${cfg.bin_name}-${os}.zip"
+        asset_content_type: "application/zip"
+    }
+}
+
+in
+
+(oses) => {
+    needs: oses.map((x) => "build-${x}")
+    "runs-on": "ubuntu-latest"
+    steps: concat(oses.map(download_artifact), [
+        {
+            name: "Create release"
+            id: "create_release"
+            uses: "actions/create-release@v1"
+            env: github_token
+            with: {
+                tag_name: '${{ github.ref }}'
+                release_name: 'Release ${{ github.ref }}'
+                draft: false
+                prerelease: false
+            }
+        },
+    ], oses.map(upload_artifact))
+}

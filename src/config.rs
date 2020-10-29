@@ -2,13 +2,13 @@ use std::env;
 use std::fs;
 use std::io::stdin;
 use std::process::Command;
+use std::str::FromStr;
 
 use linked_hash_map::LinkedHashMap;
 use rusoto_core::Region;
 use serde::Deserialize;
 
 use crate::credentials::ProfileName;
-use std::str::FromStr;
 
 #[cfg_attr(test, derive(Debug))]
 pub struct Config {
@@ -115,7 +115,7 @@ impl Config {
             check_new_version_interval_days: rc.check_new_version_interval_days.unwrap_or(7),
             modify_shell_prompt: rc.modify_shell_prompt.unwrap_or(true),
             region,
-            session_name: rc.session_name.unwrap_or("awscredx".to_owned()),
+            session_name: rc.session_name.unwrap_or_else(|| "awscredx".to_owned()),
             rotate_credentials_days: rc.rotate_credentials_days,
         };
         Ok(Some(config))

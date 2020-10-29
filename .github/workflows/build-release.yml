@@ -1,0 +1,72 @@
+---
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: "cargo build --release\ncd target/release\nzip awscredx-linux.zip awscredx"
+      - uses: actions/upload-artifact@v2
+        with:
+          name: linux-bin
+          path: target/release/awscredx-linux.zip
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: "cargo build --release\ncd target/release\nzip awscredx-macos.zip awscredx"
+      - uses: actions/upload-artifact@v2
+        with:
+          name: macos-bin
+          path: target/release/awscredx-macos.zip
+  create-release:
+    needs:
+      - build-linux
+      - build-macos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Downloads linux-bin
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-bin
+      - name: Downloads macos-bin
+        uses: actions/download-artifact@v2
+        with:
+          name: macos-bin
+      - env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        id: create_release
+        name: Create release
+        uses: actions/create-release@v1
+        with:
+          draft: false
+          prerelease: false
+          release_name: "Release ${{ github.ref }}"
+          tag_name: "${{ github.ref }}"
+      - env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        name: Upload linux-bin
+        uses: actions/upload-release-asset@v1
+        with:
+          asset_content_type: application/zip
+          asset_name: awscredx-linux.zip
+          asset_path: awscredx-linux.zip
+          upload_url: "${{ steps.create_release.outputs.upload_url }}"
+      - env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        name: Upload macos-bin
+        uses: actions/upload-release-asset@v1
+        with:
+          asset_content_type: application/zip
+          asset_name: awscredx-macos.zip
+          asset_path: awscredx-macos.zip
+          upload_url: "${{ steps.create_release.outputs.upload_url }}"
+name: build-release
+"on":
+  push:
+    tags: "*"

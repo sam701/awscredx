@@ -1,7 +1,8 @@
-use ansi_term::{Color, Style};
-use reqwest::Proxy;
 use std::env;
 use std::path::PathBuf;
+
+use ansi_term::{Color, Style};
+use reqwest::Proxy;
 
 pub fn path_to_absolute(path: &str) -> PathBuf {
     let home = env::var("HOME").expect("HOME is not set");
@@ -21,7 +22,7 @@ pub fn set_permissions(_path: &PathBuf, _mode: u32) {}
 
 pub fn get_https_proxy() -> Option<String> {
     std::env::var_os("https_proxy")
-        .or(std::env::var_os("HTTPS_PROXY"))
+        .or_else(|| std::env::var_os("HTTPS_PROXY"))
         .map(|x| x.into_string().expect("https_proxy is utf8"))
 }
 

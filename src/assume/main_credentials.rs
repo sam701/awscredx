@@ -1,3 +1,4 @@
+use ansi_term::{Color, Style};
 use chrono::{Duration, TimeZone, Utc};
 use rusoto_core::{HttpClient, Region};
 use rusoto_credential::{AwsCredentials, StaticProvider};
@@ -6,7 +7,6 @@ use rusoto_iam::{CreateAccessKeyRequest, DeleteAccessKeyRequest, Iam, IamClient}
 use crate::config::Config;
 use crate::credentials::CredentialsFile;
 use crate::state::State;
-use ansi_term::{Color, Style};
 
 pub fn rotate_if_needed(
     config: &Config,
@@ -17,7 +17,7 @@ pub fn rotate_if_needed(
         let now = Utc::now();
         let last_rotation = state
             .last_credentials_rotation_time
-            .unwrap_or(Utc.timestamp(0, 0));
+            .unwrap_or_else(|| Utc.timestamp(0, 0));
         if now - last_rotation >= Duration::days(days) {
             rotate_credentials(cred_file, config)?;
             state.last_credentials_rotation_time = Some(now);
@@ -28,16 +28,18 @@ pub fn rotate_if_needed(
 }
 
 fn rotate_credentials(cred_file: &mut CredentialsFile, config: &Config) -> Result<(), String> {
-    let cred = cred_file
-        .get_credentials(&config.main_profile)
-        .ok_or(format!(
-            "cannot get credentials for main profile '{}'",
-            config.main_profile.as_ref()
-        ))?;
-    let client = create_iam_client(cred)?;
-
-    let access_key = cred.aws_access_key_id().to_owned();
-    drop(cred);
+    let (client, access_key) = {
+        let cred = cred_file
+            .get_credentials(&config.main_profile)
+            .ok_or(format!(
+                "cannot get credentials for main profile '{}'",
+                config.main_profile.as_ref()
+            ))?;
+        (
+            create_iam_client(cred)?,
+            cred.aws_access_key_id().to_owned(),
+        )
+    };
 
     eprintln!(
         "{}: access key is more than {} days old.",

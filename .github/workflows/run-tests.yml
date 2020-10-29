@@ -1,0 +1,21 @@
+name: run-tests
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'Cargo.*'
+    pull_request: {}
+    tags-ignore:
+      - '*'
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo test
+      - run: cargo fmt --all && [[ $(git status -s | wc -l | tr -d ' ') == 0 ]]
+      - run: cargo fix --workspace && [[ $(git status -s | wc -l | tr -d ' ') == 0 ]]
+      - run: "[[ $(cargo clippy -q --workspace 2>&1 > /dev/null | wc -l | tr -d ' ') == 0 ]]"

@@ -25,10 +25,8 @@ impl JobContext {
         let shell = current_shell();
         let config_file = util::path_to_absolute(config::CONFIG_FILE_PATH);
         let config_dir = config_file.parent().unwrap().to_path_buf();
-        let data_dir = Path::new(&home_dir)
-            .join(".local/share/awscredx")
-            .to_path_buf();
-        let shell_config_script = data_dir.join(shell_script(&shell)).to_path_buf();
+        let data_dir = Path::new(&home_dir).join(".local/share/awscredx");
+        let shell_config_script = data_dir.join(shell_script(&shell));
         let shell_init_script = shell_init_script_path(&shell);
         let update = config_file.exists() && shell_config_script.exists();
         Self {
@@ -68,7 +66,7 @@ fn current_shell() -> String {
     let shell_opt = env::var_os("SHELL");
     match shell_opt.as_ref() {
         Some(shell) => {
-            let x: Vec<&str> = shell.to_str().unwrap().split("/").collect();
+            let x: Vec<&str> = shell.to_str().unwrap().split('/').collect();
             let x1 = *x.last().unwrap();
             x1.to_owned()
         }

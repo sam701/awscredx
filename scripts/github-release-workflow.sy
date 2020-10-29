@@ -1,0 +1,20 @@
+let oses = [
+	"linux",
+	"macos",
+]
+
+let build_job = import "./lib/build-job.sy"
+let create_release = import "./lib/create-release-job.sy"
+
+let build_jobs = oses.map((os) => {"build-${os}": build_job(os)})
+let release_job = {"create-release": create_release(oses)}
+
+in
+
+{
+	name: "build-release"
+	on: {
+		push: {tags: '*'}
+	}
+	jobs: merge(build_jobs.append(release_job))
+}
