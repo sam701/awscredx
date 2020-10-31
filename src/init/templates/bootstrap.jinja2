@@ -1,0 +1,6 @@
+{% if init == "Bootstrap" -%}
+    {%- if shell == "fish" -%}
+        source ("{{ bin }}" init --{{ shell }} --full | psub)
+    {% else %}
+    {%- endif %}
+{%- endif %}
