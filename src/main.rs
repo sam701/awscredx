@@ -16,7 +16,7 @@ mod version;
 mod web_console;
 
 fn main() {
-    // blabla 3
+    // blabla 4
 
     const COMMAND_INIT: &str = "init";
     const COMMAND_ASSUME: &str = "assume";
