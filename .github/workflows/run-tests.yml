@@ -4,9 +4,9 @@ on:
     paths:
       - 'src/**'
       - 'Cargo.*'
-    pull_request: {}
-    tags-ignore:
-      - '*'
+#    pull_request: {}
+#    tags-ignore:
+#      - '*'
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
