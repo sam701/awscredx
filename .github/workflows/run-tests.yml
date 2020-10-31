@@ -5,8 +5,8 @@ on:
       - 'src/**'
       - 'Cargo.*'
     pull_request: {}
-#    tags-ignore:
-#      - '*'
+    tags-ignore:
+      - '*'
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
