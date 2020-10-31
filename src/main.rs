@@ -16,6 +16,7 @@ mod version;
 mod web_console;
 
 fn main() {
+    // blabla
     const COMMAND_INIT: &str = "init";
     const COMMAND_ASSUME: &str = "assume";
     const COMMAND_LIST_PROFILES: &str = "list-profiles";
