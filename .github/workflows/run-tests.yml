@@ -4,7 +4,7 @@ on:
     paths:
       - 'src/**'
       - 'Cargo.*'
-#    pull_request: {}
+    pull_request: {}
 #    tags-ignore:
 #      - '*'
 jobs:
