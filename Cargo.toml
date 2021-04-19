@@ -1,6 +1,6 @@
 [package]
 name = "awscredx"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["Alexei Samokvalov <alexei@sam701.com>"]
 edition = "2018"
 
@@ -19,7 +19,7 @@ serde_json = "*"
 custom_error = "1.7"
 chrono = "0.4"
 ansi_term = "0.12"
-linked-hash-map = { version = "0.5", features = ["serde_impl"] }
+linked-hash-map = { version = "0.5.4", features = ["serde_impl"] }
 reqwest = "0.9"
 hyper = "*"
 hyper-tls = "*"
