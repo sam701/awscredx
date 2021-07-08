@@ -25,6 +25,7 @@ impl State {
 
     pub fn save(&self) -> Result<(), String> {
         let content = toml::to_string(&self).expect("encoded TOML string");
+        util::create_storage_dir();
         let sf = state_file_path();
         fs::write(&sf, content).map_err(|e| format!("Cannot write file: {}", e))?;
         util::set_permissions(&sf, 0o600);

@@ -23,7 +23,7 @@ In a new shell you can call `assume <profile name>` to assume the role from `<pr
 ![prompt](./doc/prompt.png)
 
 ### Configurable role profiles
-Well documented [configuration file](./src/init/config-template.toml).
+Well documented [configuration file](./src/init/templates/config.toml).
 ```toml
 [profiles]
 dev = "arn:aws:iam::123456589012:role/Admin"

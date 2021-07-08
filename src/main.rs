@@ -5,6 +5,7 @@ use chrono::{DateTime, Duration, Local, Utc};
 
 use crate::config::Config;
 use crate::credentials::CredentialsFile;
+use crate::init::{InitType, setup};
 
 mod assume;
 mod config;
@@ -17,6 +18,7 @@ mod web_console;
 
 fn main() {
     const COMMAND_INIT: &str = "init";
+    const COMMAND_SETUP: &str = "setup";
     const COMMAND_ASSUME: &str = "assume";
     const COMMAND_LIST_PROFILES: &str = "list-profiles";
     const COMMAND_LIST_CREDENTIALS: &str = "list-credentials";
@@ -28,19 +30,35 @@ fn main() {
     const ARG_PROFILE_NAME: &str = "profile-name";
     const ARG_WEB_CONSOLE_SERVICE: &str = "service";
     const ARG_OPEN_IN_BROWSER: &str = "open-in-browser";
+    const ARG_SHELL: &str = "shell";
+    const ARG_FULL: &str = "full";
 
     let matches = clap::App::new("awscredx")
         .version(version::VERSION)
         .about(format!(r#"AWS credentials management, a.k.a. role assumption made easy.
 Run '{}' to create the configuration file and set up shell scripts."#,
-                       Style::new().fg(Color::Yellow).paint("awscredx init")).as_str())
+                       Style::new().fg(Color::Yellow).paint("awscredx setup")).as_str())
         .subcommand(clap::SubCommand::with_name(COMMAND_ASSUME)
             .about("Prints shell commands to assume the role for a given profile")
             .arg(clap::Arg::with_name(ARG_PROFILE_NAME)
                 .required(true)
                 .help("Profile name which role to assume")))
+        .subcommand(clap::SubCommand::with_name(COMMAND_SETUP)
+            .about("Creates config.toml")
+        )
         .subcommand(clap::SubCommand::with_name(COMMAND_INIT)
-            .about("Initializes local environment"))
+            .about("Initializes local environment")
+            .arg(clap::Arg::with_name(ARG_SHELL)
+                .value_name("SHELL")
+                .required(true)
+                .possible_values(&["fish", "bash", "zsh"])
+                .help("The name of the currently running shell")
+            )
+            .arg(clap::Arg::with_name(ARG_FULL)
+                .long("full")
+                .help("If the full shell init script should be printed or only the bootstrapping part")
+            )
+        )
         .subcommand(clap::SubCommand::with_name(COMMAND_LIST_PROFILES)
             .about("Lists configured profiles with their role ARNs"))
         .subcommand(clap::SubCommand::with_name(COMMAND_LIST_CREDENTIALS)
@@ -71,7 +89,15 @@ Run '{}' to create the configuration file and set up shell scripts."#,
         }
         (COMMAND_PRINT_PROMPT, _) => print_prompt(),
         (COMMAND_PRINT_EXPIRATION, _) => print_expiration(),
-        (COMMAND_INIT, _) => init::run(),
+        (COMMAND_INIT, Some(args)) => init::run(
+            args.value_of(ARG_SHELL).expect("shell"),
+            if args.is_present(ARG_FULL) {
+                InitType::Full
+            } else {
+                InitType::Bootstrap
+            },
+        ),
+        (COMMAND_SETUP, _) => setup::run(),
         (COMMAND_LIST_PROFILES, _) => print_profiles(),
         (COMMAND_LIST_CREDENTIALS, _) => print_credentials(),
         (COMMAND_WEB_CONSOLE_SIGNIN, Some(arg)) => web_console::create_signin_url(

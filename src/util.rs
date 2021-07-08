@@ -1,5 +1,5 @@
-use std::env;
 use std::path::PathBuf;
+use std::{env, fs};
 
 use ansi_term::{Color, Style};
 use reqwest::Proxy;
@@ -42,4 +42,12 @@ pub fn get_https_client() -> Result<reqwest::Client, String> {
 pub fn styled_error_word() -> String {
     let err_style = Style::new().fg(Color::Red).bold();
     err_style.paint("ERROR").to_string()
+}
+
+pub fn create_storage_dir() {
+    let dir = path_to_absolute("~/.local/share/awscredx");
+    if !dir.exists() {
+        fs::create_dir_all(&dir).expect("dir created");
+        set_permissions(&dir, 0o700);
+    }
 }

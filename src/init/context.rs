@@ -1,80 +1,79 @@
-use crate::{config, util};
-use ansi_term::{Color, Style};
 use std::env;
 use std::path::{Path, PathBuf};
 
-pub struct JobContext {
-    pub home_dir: String,
-    pub shell: String,
+use crate::{config, util};
 
-    pub config_dir: PathBuf,
-    pub config_file: PathBuf,
-
-    pub data_dir: PathBuf,
-    pub shell_config_script: PathBuf,
-    pub shell_init_script: PathBuf,
-
-    pub styles: Styles,
-
-    pub update: bool,
+pub enum Shell {
+    Fish,
+    Bash,
+    Zsh,
 }
 
-impl JobContext {
-    pub fn new() -> Self {
-        let home_dir = env::var("HOME").expect("HOME is not set");
-        let shell = current_shell();
-        let config_file = util::path_to_absolute(config::CONFIG_FILE_PATH);
-        let config_dir = config_file.parent().unwrap().to_path_buf();
-        let data_dir = Path::new(&home_dir).join(".local/share/awscredx");
-        let shell_config_script = data_dir.join(shell_script(&shell));
-        let shell_init_script = shell_init_script_path(&shell);
-        let update = config_file.exists() && shell_config_script.exists();
-        Self {
-            home_dir,
-            shell,
-            shell_config_script,
-            shell_init_script,
-            config_dir,
-            config_file,
-            data_dir,
-
-            styles: Styles::new(),
-            update,
+impl From<&str> for Shell {
+    fn from(s: &str) -> Self {
+        match s {
+            "fish" => Self::Fish,
+            "bash" => Self::Bash,
+            "zsh" => Self::Zsh,
+            x => panic!("Unsupported shell {}", x),
         }
-    }
-
-    pub fn shell_script_content(&self) -> String {
-        let tmpl = self.raw_shell_script_template();
-        self.replace_template_placeholders(tmpl)
-    }
-
-    fn raw_shell_script_template(&self) -> &str {
-        match self.shell.as_str() {
-            "fish" => include_str!("script.fish"),
-            _ => include_str!("script.sh"),
-        }
-    }
-
-    fn replace_template_placeholders(&self, template: &str) -> String {
-        template
-            .replace("@bin@", super::BINARY_NAME)
-            .replace("@version@", crate::version::VERSION)
     }
 }
 
-fn current_shell() -> String {
-    let shell_opt = env::var_os("SHELL");
-    match shell_opt.as_ref() {
-        Some(shell) => {
-            let x: Vec<&str> = shell.to_str().unwrap().split('/').collect();
-            let x1 = *x.last().unwrap();
-            x1.to_owned()
+impl AsRef<str> for Shell {
+    fn as_ref(&self) -> &str {
+        match self {
+            Shell::Bash => "bash",
+            Shell::Fish => "fish",
+            Shell::Zsh => "zsh",
         }
-        None => "bash".to_owned(),
     }
 }
 
-fn shell_init_script_path(shell: &str) -> PathBuf {
+pub fn shell_config_script(shell: &Shell) -> PathBuf {
+    data_dir().join(shell_script(shell))
+}
+
+pub fn config_file() -> PathBuf {
+    util::path_to_absolute(config::CONFIG_FILE_PATH)
+}
+
+pub fn config_dir() -> PathBuf {
+    config_file().parent().unwrap().to_path_buf()
+}
+
+fn replace_template_placeholders(template: &str) -> String {
+    template
+        .replace("@bin@", super::BINARY_NAME)
+        .replace("@version@", crate::version::VERSION)
+}
+
+pub fn shell_script_content(shell: &Shell) -> String {
+    let tmpl = raw_shell_script_template(shell);
+    replace_template_placeholders(tmpl)
+}
+
+pub fn init_line(shell: &Shell) -> String {
+    let cmd = format!("{} init {}", super::BINARY_NAME, shell.as_ref());
+    match shell {
+        Shell::Fish => format!("{} | source", &cmd),
+        _ => format!("eval $({})", &cmd),
+    }
+}
+
+fn raw_shell_script_template(shell: &Shell) -> &str {
+    match shell {
+        Shell::Fish => include_str!("templates/script.fish"),
+        _ => include_str!("templates/script.sh"),
+    }
+}
+
+pub fn data_dir() -> PathBuf {
+    let home_dir = env::var("HOME").expect("HOME is not set");
+    Path::new(&home_dir).join(".local/share/awscredx")
+}
+
+pub fn shell_init_script_path(shell: &Shell) -> PathBuf {
     let bash_files = vec![
         "~/.bashrc",
         "~/.bash_profile",
@@ -87,15 +86,15 @@ fn shell_init_script_path(shell: &str) -> PathBuf {
         .collect();
     let bash_file_index = first_file_that_exists_index(&abs_bash).unwrap_or(0);
     match shell {
-        "fish" => util::path_to_absolute("~/.config/fish/config.fish"),
-        "zsh" => util::path_to_absolute("~/.zshrc"),
+        Shell::Fish => util::path_to_absolute("~/.config/fish/config.fish"),
+        Shell::Zsh => util::path_to_absolute("~/.zshrc"),
         _ => abs_bash.remove(bash_file_index),
     }
 }
 
-fn shell_script(shell: &str) -> &str {
+fn shell_script(shell: &Shell) -> &str {
     match shell {
-        "fish" => "script.fish",
+        Shell::Fish => "script.fish",
         _ => "script.sh",
     }
 }
@@ -107,24 +106,4 @@ fn first_file_that_exists_index(paths: &[PathBuf]) -> Option<usize> {
 pub fn home_based_path(path: &str) -> String {
     let home = env::var("HOME").expect("HOME is not set");
     path.replace(&home, "$HOME").replace("~", "$HOME")
-}
-
-pub struct Styles {
-    pub path: Style,
-    pub helpers: Style,
-    pub success: Style,
-    pub already_done: Style,
-    pub failure: Style,
-}
-
-impl Styles {
-    fn new() -> Self {
-        Styles {
-            path: Style::new().fg(Color::White).italic().fg(Color::Cyan),
-            helpers: Style::new().fg(Color::White).bold(),
-            success: Style::new().fg(Color::Green).bold(),
-            already_done: Style::new().fg(Color::Yellow),
-            failure: Style::new().fg(Color::Red).bold(),
-        }
-    }
 }
