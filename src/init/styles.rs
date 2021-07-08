@@ -6,12 +6,6 @@ pub fn path() -> Style {
 pub fn helpers() -> Style {
     Style::new().fg(Color::White).bold()
 }
-pub fn success() -> Style {
-    Style::new().fg(Color::Green).bold()
-}
-pub fn already_done() -> Style {
-    Style::new().fg(Color::Yellow)
-}
 pub fn failure() -> Style {
     Style::new().fg(Color::Red).bold()
 }

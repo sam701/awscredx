@@ -12,7 +12,7 @@ pub fn path_to_absolute(path: &str) -> PathBuf {
 
 #[cfg(target_family = "unix")]
 pub fn set_permissions(path: &PathBuf, mode: u32) {
-    use std::fs::{self, Permissions};
+    use std::fs::Permissions;
     use std::os::unix::fs::PermissionsExt;
     fs::set_permissions(path, Permissions::from_mode(mode)).expect("set file permissions");
 }
@@ -44,8 +44,10 @@ pub fn styled_error_word() -> String {
     err_style.paint("ERROR").to_string()
 }
 
+pub const STORAGE_DIR: &str = "~/.local/share/awscredx";
+
 pub fn create_storage_dir() {
-    let dir = path_to_absolute("~/.local/share/awscredx");
+    let dir = path_to_absolute(STORAGE_DIR);
     if !dir.exists() {
         fs::create_dir_all(&dir).expect("dir created");
         set_permissions(&dir, 0o700);

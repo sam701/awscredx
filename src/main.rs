@@ -5,7 +5,7 @@ use chrono::{DateTime, Duration, Local, Utc};
 
 use crate::config::Config;
 use crate::credentials::CredentialsFile;
-use crate::init::{InitType, setup};
+use crate::init::{setup, InitType};
 
 mod assume;
 mod config;

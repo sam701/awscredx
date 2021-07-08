@@ -1,4 +1,3 @@
-set -x AWSCREDX_SCRIPT_VERSION "@version@"
 functions -q _original_fish_prompt
 if test $status -ne 0
   functions -c fish_prompt _original_fish_prompt

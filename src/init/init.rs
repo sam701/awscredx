@@ -1,15 +1,12 @@
-use std::fs::{self, File};
-use std::io::prelude::*;
-use std::process::Command;
-use std::{env, process};
+use std::env;
+use std::fs;
 
-use tera::{Context, Tera};
 use super::context;
 
-use crate::util;
-use crate::version::VERSION;
-use crate::init::styles;
 use crate::init::context::Shell;
+use crate::init::styles;
+use crate::util;
+use std::path::Path;
 
 pub const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
 
@@ -30,15 +27,10 @@ fn print_bootstrap_script(shell: &str, init_type: InitType) {
     let buf = env::current_exe().unwrap();
     let bin = buf.to_str().unwrap();
 
-
     use InitType::*;
     match init_type {
         Bootstrap => {
-            let cmd = format!(
-                r#""{bin}" init --full {shell}"#,
-                bin = bin,
-                shell = shell
-            );
+            let cmd = format!(r#""{bin}" init --full {shell}"#, bin = bin, shell = shell);
             if shell == "fish" {
                 print!(r#"source ({cmd} | psub)"#, cmd = cmd);
             } else {
@@ -50,25 +42,16 @@ fn print_bootstrap_script(shell: &str, init_type: InitType) {
                 include_str!("templates/script.fish")
             } else {
                 include_str!("templates/script.sh")
-            };
-            let mut tr = Tera::default();
-            tr.add_raw_template("script", tmpl);
-
-            let mut ctx = Context::new();
-            ctx.insert("binary", bin);
-            ctx.insert("version_var_name", VERSION_VAR_NAME);
-            ctx.insert("version", VERSION);
-
-            let body = tr.render("script", &ctx).unwrap();
-            println!("{}", body);
+            }
+            .replace("@bin@", super::BINARY_NAME);
+            println!("{}", tmpl);
         }
     }
 }
-const VERSION_VAR_NAME: &str = "AWSCREDX_SCRIPT_VERSION";
 
 pub fn outdated_script() -> bool {
-    let script_version = env::var(VERSION_VAR_NAME).unwrap_or_else(|_| "OLD".to_owned());
-    script_version != crate::version::VERSION
+    let storage_dir = Path::new(util::STORAGE_DIR);
+    storage_dir.join("script.sh").exists() || storage_dir.join("script.fish").exists()
 }
 
 /// This upgrades old awscredx version that used an external script file.
@@ -84,11 +67,10 @@ fn upgrade_unmaintained_version(shell: Shell) {
     );
     println!(
         "You should update your shell init script, e.g. {} like this",
-        styles::path()            .paint(cfg_script_path.to_str().unwrap())
+        styles::path().paint(cfg_script_path.to_str().unwrap())
     );
 
-    let home_based_config_path =
-        context::home_based_path(cfg_script_path.to_str().unwrap());
+    let home_based_config_path = context::home_based_path(cfg_script_path.to_str().unwrap());
     let source_line = format!("source {}", &home_based_config_path);
     println!(" - Remove line '{}'", &source_line);
     println!(" - Add line '{}'", context::init_line(&shell));

@@ -4,18 +4,7 @@ use std::io::Write;
 use std::process;
 
 use super::{context, styles};
-use crate::init::outdated_script;
 use crate::util;
-
-enum JobStatus {
-    Success,
-    WasAlreadyDone,
-}
-
-struct JobReport {
-    title: String,
-    status: JobStatus,
-}
 
 pub fn run() {
     if let Err(e) = run_jobs() {
@@ -25,8 +14,8 @@ pub fn run() {
 }
 
 fn run_jobs() -> Result<(), String> {
-    let report = create_config_dir()?;
-    let report2 = create_config_file()?;
+    create_config_dir()?;
+    create_config_file()?;
 
     println!("\nNow edit configuration file {},\nthen open a new terminal and assume a role by calling '{}'",
              styles::path().paint(context::config_file().to_str().unwrap()),
@@ -35,31 +24,9 @@ fn run_jobs() -> Result<(), String> {
     Ok(())
 }
 
-fn print_report(report: &JobReport) {
-    print!(
-        " {} {}\n   {} ",
-        styles::helpers().paint("-"),
-        &report.title,
-        styles::helpers().paint("<E2><86><92>")
-    );
-    match report.status {
-        JobStatus::Success => println!("{}", styles::success().paint("created")),
-        JobStatus::WasAlreadyDone => {
-            println!("{}", styles::already_done().paint("already exists"))
-        }
-    }
-}
-
-fn create_config_dir() -> Result<JobReport, String> {
-    let title = format!(
-        "Create configuration directory '{}'",
-        styles::path().paint(context::config_dir().to_str().unwrap())
-    );
+fn create_config_dir() -> Result<(), String> {
     if context::config_dir().exists() {
-        Ok(JobReport {
-            title,
-            status: JobStatus::WasAlreadyDone,
-        })
+        Ok(())
     } else {
         fs::create_dir_all(&context::config_dir()).map_err(|e| {
             format!(
@@ -69,23 +36,13 @@ fn create_config_dir() -> Result<JobReport, String> {
             )
         })?;
         util::set_permissions(&context::config_dir(), 0o700);
-        Ok(JobReport {
-            title,
-            status: JobStatus::Success,
-        })
+        Ok(())
     }
 }
 
-fn create_config_file() -> Result<JobReport, String> {
-    let title = format!(
-        "Create configuration file '{}'",
-        styles::path().paint(context::config_file().to_str().unwrap())
-    );
+fn create_config_file() -> Result<(), String> {
     if context::config_file().exists() {
-        Ok(JobReport {
-            title,
-            status: JobStatus::WasAlreadyDone,
-        })
+        Ok(())
     } else {
         let file = File::create(&context::config_file()).map_err(|e| {
             format!(
@@ -98,9 +55,6 @@ fn create_config_file() -> Result<JobReport, String> {
         write!(&file, "{}", content)
             .map_err(|e| format!("cannot write configuration file: {}", e))?;
         util::set_permissions(&context::config_file(), 0o600);
-        Ok(JobReport {
-            title,
-            status: JobStatus::Success,
-        })
+        Ok(())
     }
 }
