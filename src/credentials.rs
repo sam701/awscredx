@@ -333,7 +333,7 @@ impl CredentialExpirations {
         Self(HashMap::new())
     }
 
-    fn write(&self, path: &PathBuf) -> Result<(), String> {
+    fn write(&self, path: &Path) -> Result<(), String> {
         let content = toml::to_string(&self.0).expect("Cannot encode expirations into TOML");
         util::create_storage_dir();
         fs::write(path, content).map_err(|e| format!("Cannot write file: {}", e))?;

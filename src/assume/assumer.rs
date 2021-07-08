@@ -84,9 +84,11 @@ fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCrede
             role_arn,
             session_name,
         } => {
-            let mut req = AssumeRoleRequest::default();
-            req.role_arn = role_arn;
-            req.role_session_name = session_name;
+            let req = AssumeRoleRequest {
+                role_arn,
+                role_session_name: session_name,
+                ..Default::default()
+            };
             let result = client
                 .assume_role(req)
                 .sync()
@@ -99,9 +101,11 @@ fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCrede
             serial_number,
             token_code,
         } => {
-            let mut req = GetSessionTokenRequest::default();
-            req.serial_number = Some(serial_number);
-            req.token_code = Some(token_code);
+            let req = GetSessionTokenRequest {
+                serial_number: Some(serial_number),
+                token_code: Some(token_code),
+                duration_seconds: None,
+            };
             let result = client
                 .get_session_token(req)
                 .sync()

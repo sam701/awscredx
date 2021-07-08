@@ -3,8 +3,8 @@ use std::fs::File;
 use std::io::Write;
 use std::process;
 
-use super::{context, styles};
-use crate::util;
+use super::context;
+use crate::{styles, util};
 
 pub fn run() {
     if let Err(e) = run_jobs() {
@@ -17,9 +17,24 @@ fn run_jobs() -> Result<(), String> {
     create_config_dir()?;
     create_config_file()?;
 
-    println!("\nNow edit configuration file {},\nthen open a new terminal and assume a role by calling '{}'",
-             styles::path().paint(context::config_file().to_str().unwrap()),
-             styles::path().paint("assume <profile-from-your-config>"));
+    println!(
+        r#"
+Make sure that you:
+  {} have filled all necessarily properties in your configuration file {},
+  {} have the following line in your shell init script, e.g. .bashrc
+     - {} if you use bash,
+     - {} if you use zsh,
+     - {} if you use fish
+
+Now you can open a new terminal and assume a role by calling '{}'."#,
+        styles::number().paint("1."),
+        styles::path().paint(context::config_file().to_str().unwrap()),
+        styles::number().paint("2."),
+        styles::path().paint("eval $(awscredx init bash)"),
+        styles::path().paint("eval $(awscredx init zsh)"),
+        styles::path().paint("awscredx init fish | source"),
+        styles::number().paint("assume <profile-from-your-config>")
+    );
 
     Ok(())
 }

@@ -23,10 +23,6 @@ function assume
           _original_fish_prompt
         end
       end
-    case 50
-      "@bin@" init
-      source $HOME/.local/share/awscredx/script.fish
-      assume $argv
     case '*'
       return $s
   end

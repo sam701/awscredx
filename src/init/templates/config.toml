@@ -18,7 +18,7 @@ mfa_serial_number = "arn:aws:iam::MAIN_ACCOUNT_ID:mfa/USERNAME"
 
 # Uncomment and adjust the shell command if your MFA token can be provided by a script.
 # Here is an example for yubikey.
-# mfa_command = "ykman oath code | awk '/SOME_PATTERN/ {print $2}'"
+# mfa_command = "ykman oath accounts code | awk '/SOME_PATTERN/ {print $2}'"
 
 # How often to check for new version.
 check_new_version_interval_days = 7

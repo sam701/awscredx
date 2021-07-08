@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use ansi_term::{Color, Style};
@@ -11,7 +11,7 @@ pub fn path_to_absolute(path: &str) -> PathBuf {
 }
 
 #[cfg(target_family = "unix")]
-pub fn set_permissions(path: &PathBuf, mode: u32) {
+pub fn set_permissions(path: &Path, mode: u32) {
     use std::fs::Permissions;
     use std::os::unix::fs::PermissionsExt;
     fs::set_permissions(path, Permissions::from_mode(mode)).expect("set file permissions");

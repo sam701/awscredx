@@ -12,6 +12,7 @@ mod config;
 mod credentials;
 mod init;
 mod state;
+mod styles;
 mod util;
 mod version;
 mod web_console;
@@ -118,7 +119,11 @@ fn read_config() -> Config {
             ::std::process::exit(1);
         }
         Err(e) => {
-            println!("Cannot read config: {}", e);
+            println!(
+                "{}: cannot read config: {}",
+                styles::error().paint("ERROR"),
+                e
+            );
             ::std::process::exit(2);
         }
     }

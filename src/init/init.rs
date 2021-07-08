@@ -1,12 +1,6 @@
 use std::env;
-use std::fs;
 
-use super::context;
-
-use crate::init::context::Shell;
-use crate::init::styles;
 use crate::util;
-use std::path::Path;
 
 pub const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
 
@@ -16,14 +10,6 @@ pub enum InitType {
 }
 
 pub fn run(shell: &str, init_type: InitType) {
-    if outdated_script() {
-        upgrade_unmaintained_version(shell.into());
-    }
-
-    print_bootstrap_script(shell, init_type);
-}
-
-fn print_bootstrap_script(shell: &str, init_type: InitType) {
     let buf = env::current_exe().unwrap();
     let bin = buf.to_str().unwrap();
 
@@ -38,6 +24,8 @@ fn print_bootstrap_script(shell: &str, init_type: InitType) {
             }
         }
         Full => {
+            print_delete_deprecated_script("script.sh");
+            print_delete_deprecated_script("script.fish");
             let tmpl = if shell == "fish" {
                 include_str!("templates/script.fish")
             } else {
@@ -49,29 +37,10 @@ fn print_bootstrap_script(shell: &str, init_type: InitType) {
     }
 }
 
-pub fn outdated_script() -> bool {
-    let storage_dir = Path::new(util::STORAGE_DIR);
-    storage_dir.join("script.sh").exists() || storage_dir.join("script.fish").exists()
-}
-
-/// This upgrades old awscredx version that used an external script file.
-fn upgrade_unmaintained_version(shell: Shell) {
-    let cfg_script_path = context::shell_config_script(&shell);
-    if cfg_script_path.exists() {
-        fs::remove_file(&cfg_script_path).expect("file was deleted");
+fn print_delete_deprecated_script(file: &str) {
+    let dir = util::path_to_absolute(util::STORAGE_DIR);
+    let file = dir.join(file);
+    if file.exists() {
+        println!("rm -r {}", file.to_str().unwrap());
     }
-
-    println!(
-        "{} This new version introduces breaking changes in the script bootstrap process",
-        styles::helpers().paint("IMPORTANT!!!")
-    );
-    println!(
-        "You should update your shell init script, e.g. {} like this",
-        styles::path().paint(cfg_script_path.to_str().unwrap())
-    );
-
-    let home_based_config_path = context::home_based_path(cfg_script_path.to_str().unwrap());
-    let source_line = format!("source {}", &home_based_config_path);
-    println!(" - Remove line '{}'", &source_line);
-    println!(" - Add line '{}'", context::init_line(&shell));
 }

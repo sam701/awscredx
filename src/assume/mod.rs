@@ -11,20 +11,17 @@ use hyper_tls::HttpsConnector;
 use crate::assume::assumer::RoleAssumer;
 use crate::config::Config;
 use crate::credentials::CredentialsFile;
-use crate::state;
 use crate::util;
+use crate::{state, styles};
 
 mod assumer;
 mod main_credentials;
 
 pub fn run(profile: &str, config: &Config) {
     let error = util::styled_error_word();
-    if super::init::outdated_script() {
-        println!(
-            "{}: detected scripts from the previous version. Please run 'awscredx init'.",
-            &error
-        );
-        process::exit(50);
+    if outdated_script() {
+        print_update_instructions();
+        process::exit(5);
     }
     match run_raw(profile, config) {
         Ok(_) => {}
@@ -104,4 +101,28 @@ fn get_https_connector() -> Result<ProxyConnector<HttpsConnector<HttpConnector>>
         }
         None => ProxyConnector::new(connector).expect("transparent proxy created"),
     })
+}
+
+fn outdated_script() -> bool {
+    env::var("AWSCREDX_SCRIPT_VERSION").is_ok()
+}
+
+fn print_update_instructions() {
+    println!(
+        r#"
+{}
+This new version introduces a breaking change in the script initialization.
+Please replace the line {} in your init script with
+ - {} for bash,
+ - {} for zsh,
+ - {} for fish,
+Then you can assume a role as before with {}
+"#,
+        styles::number().paint("ATTENTION!!!"),
+        styles::path().paint("source ~/.local/share/awscredx/script.sh"),
+        styles::path().paint("eval $(awscredx init bash)"),
+        styles::path().paint("eval $(awscredx init zsh)"),
+        styles::path().paint("awscredx init fish | source"),
+        styles::number().paint("assume <profile-name-in-your-config.toml>"),
+    );
 }

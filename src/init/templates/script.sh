@@ -1,4 +1,3 @@
-export AWSCREDX_SCRIPT_VERSION="@version@"
 if [ -z "$_ORIGINAL_PS1" ]; then
   _ORIGINAL_PS1="${PS1:-}"
 fi
@@ -20,12 +19,8 @@ function assume {
         PS1='$(__awscredx_prompt) '${_ORIGINAL_PS1:-}
       fi
       ;;
-    50)
-      "@bin@" init
-      source $HOME/.local/share/awscredx/script.sh
-      assume "$@"
-      ;;
     *)
+      echo $out
       return $s
       ;;
   esac
