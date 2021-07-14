@@ -28,9 +28,7 @@ pub struct Config {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 pub struct Profile {
     pub role_arn: String,
-    pub duration_sec: Option<u64>,
     pub parent_profile: Option<ProfileName>,
-    pub color: Option<String>,
 }
 
 pub enum AssumeSubject {
@@ -104,8 +102,6 @@ impl Config {
                             ProfileValue::Arn(role_arn) => Profile {
                                 role_arn,
                                 parent_profile: None,
-                                duration_sec: None,
-                                color: None,
                             },
                             ProfileValue::ProfileConfig(profile) => profile,
                         },
@@ -217,8 +213,6 @@ fn parse_config() {
     let arn_prof = |x: &str| Profile {
         role_arn: x.to_owned(),
         parent_profile: None,
-        duration_sec: None,
-        color: None,
     };
 
     assert_eq!(cfg.main_profile, ProfileName::new("abc"));
@@ -231,8 +225,6 @@ fn parse_config() {
     assert_eq!(cfg.profiles[&prof2], arn_prof("arn2"));
     let pr = &cfg.profiles[&prof3];
     assert_eq!(&pr.role_arn, "arn3");
-    assert!(pr.duration_sec.is_none());
-    assert!(pr.color.is_none());
     let prof2 = ProfileName::new("prof2");
     let real_prof2 = pr.parent_profile.as_ref().unwrap();
     assert_eq!(real_prof2, &prof2);

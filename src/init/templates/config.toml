@@ -51,11 +51,3 @@ role_arn = "arn:aws:iam::123456589014:role/ReadOnly"
 
 # (optional) Profile name that must be used to assume this role
 # parent_profile = "dev"
-
-# (optional)
-# duration_sec = 7200
-
-[profiles.dev-db]
-
-# This field is required
-role_arn = "arn:aws:iam::123456589014:role/Db"
