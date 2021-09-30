@@ -46,7 +46,7 @@ impl<'a> RoleAssumer<'a> {
     }
 
     fn profile_credentials(&mut self, profile: &ProfileName) -> Result<Cred, String> {
-        match self.store.get_credentials(&profile) {
+        match self.store.get_credentials(profile) {
             Some(cred) => match cred.expires_at() {
                 Some(exp) if *exp - Utc::now() < Duration::minutes(10) =>
                 // TODO: make the time configurable

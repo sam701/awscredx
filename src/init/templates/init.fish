@@ -1,3 +1,4 @@
+set -x @shell_var@ fish
 functions -q _original_fish_prompt
 if test $status -ne 0
   functions -c fish_prompt _original_fish_prompt
@@ -13,16 +14,6 @@ function assume
   switch $s
     case 0
       eval "$output"
-      if test "$__awscredx_modify_prompt" = "true"
-        function fish_prompt
-          set -l old_status $status
-
-          __awscredx_prompt
-
-          echo -n "exit $old_status" | .
-          _original_fish_prompt
-        end
-      end
     case '*'
       return $s
   end

@@ -1,8 +1,7 @@
 use std::env;
 
+use crate::init::SHELL_VAR;
 use crate::util;
-
-pub const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
 
 pub enum InitType {
     Bootstrap,
@@ -11,12 +10,16 @@ pub enum InitType {
 
 pub fn run(shell: &str, init_type: InitType) {
     let buf = env::current_exe().unwrap();
-    let bin = buf.to_str().unwrap();
+    let current_binary_path = buf.to_str().unwrap();
 
     use InitType::*;
     match init_type {
         Bootstrap => {
-            let cmd = format!(r#""{bin}" init --full {shell}"#, bin = bin, shell = shell);
+            let cmd = format!(
+                r#""{bin}" init --full {shell}"#,
+                bin = current_binary_path,
+                shell = shell
+            );
             if shell == "fish" {
                 print!(r#"source ({cmd} | psub)"#, cmd = cmd);
             } else {
@@ -27,11 +30,13 @@ pub fn run(shell: &str, init_type: InitType) {
             print_delete_deprecated_script("script.sh");
             print_delete_deprecated_script("script.fish");
             let tmpl = if shell == "fish" {
-                include_str!("templates/script.fish")
+                include_str!("templates/init.fish")
             } else {
-                include_str!("templates/script.sh")
+                include_str!("templates/init.sh")
             }
-            .replace("@bin@", super::BINARY_NAME);
+            .replace("@bin@", current_binary_path)
+            .replace("@shell_var@", SHELL_VAR)
+            .replace("@shell@", shell);
             println!("{}", tmpl);
         }
     }

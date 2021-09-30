@@ -11,6 +11,7 @@ use hyper_tls::HttpsConnector;
 use crate::assume::assumer::RoleAssumer;
 use crate::config::Config;
 use crate::credentials::CredentialsFile;
+use crate::init::SHELL_VAR;
 use crate::util;
 use crate::{state, styles};
 
@@ -68,24 +69,43 @@ fn check_newer_version() {
 }
 
 fn print_profile(profile_name: &str, config: &Config) {
-    match env::var_os("SHELL") {
+    match env::var_os(SHELL_VAR) {
         Some(shell) => {
             let file = Path::new(&shell).file_name().unwrap().to_str().unwrap();
             match file {
-                "fish" => {
-                    print!("set -xg AWS_PROFILE {}; ", profile_name);
-                    println!(
-                        "set -l __awscredx_modify_prompt {}",
-                        config.modify_shell_prompt
-                    );
-                }
-                _ => {
-                    print!("export AWS_PROFILE={}; ", profile_name);
-                    println!("__awscredx_modify_prompt={}", config.modify_shell_prompt);
-                }
+                "fish" => print_fish_profile(profile_name, config),
+                "zsh" => print_sh_profile(profile_name, config, true),
+                _ => print_sh_profile(profile_name, config, false),
             }
         }
-        None => println!("export AWS_PROFILE={}", profile_name),
+        None => print_sh_profile(profile_name, config, false),
+    }
+}
+
+fn print_fish_profile(profile_name: &str, config: &Config) {
+    println!("set -xg AWS_PROFILE {}; ", profile_name);
+    if config.modify_shell_prompt {
+        println!(
+            r#"function fish_prompt
+  set -l old_status $status
+
+  __awscredx_prompt
+
+  echo -n "exit $old_status" | .
+  _original_fish_prompt
+end
+"#
+        )
+    }
+}
+
+fn print_sh_profile(profile_name: &str, config: &Config, zsh: bool) {
+    println!("export AWS_PROFILE={}; ", profile_name);
+    if config.modify_shell_prompt {
+        if zsh {
+            println!("setopt PROMPT_SUBST");
+        }
+        println!("PS1='$(__awscredx_prompt) '${{_ORIGINAL_PS1:-}}")
     }
 }
 
@@ -116,7 +136,7 @@ Please replace the line {} in your init script with
  - {} for bash,
  - {} for zsh,
  - {} for fish,
-Then you can assume a role as before with {}
+Then open a new console window and you can assume a role as before with {}
 "#,
         styles::number().paint("ATTENTION!!!"),
         styles::path().paint("source ~/.local/share/awscredx/script.sh"),

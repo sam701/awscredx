@@ -24,8 +24,8 @@ mfa_serial_number = "arn:aws:iam::MAIN_ACCOUNT_ID:mfa/USERNAME"
 check_new_version_interval_days = 7
 
 # This will prepend the assumed profile and the expiration time to your shell prompt.
-# You can disable this feature and directly use the shell function "__awscredx_prompt" in your prompt
-# at a more appropriate place, e.g. on a separate line, etc.
+# You can disable this feature and directly use environment variable `AWS_PROFILE` with
+# an explicit call `awscredx print-expiration` or `awscredx print-prompt`.
 modify_shell_prompt = true
 
 # The AWS region.

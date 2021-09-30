@@ -78,7 +78,7 @@ fn create(aws_service_name: &str, open_in_browser: bool) -> Result<(), String> {
             ("Action", "login"),
             ("Issuer", ""),
             ("Destination", &destination_url),
-            ("SigninToken", &sign_in_token),
+            ("SigninToken", sign_in_token),
         ])
         .unwrap()
     );

@@ -1,5 +1,7 @@
 mod context;
-mod init;
+mod initializer;
 pub mod setup;
 
-pub use init::*;
+pub use initializer::*;
+
+pub const SHELL_VAR: &str = "AWSCREDX_SHELL";
