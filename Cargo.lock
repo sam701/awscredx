@@ -85,7 +85,6 @@ dependencies = [
  "ansi_term 0.12.1",
  "chrono",
  "clap",
- "custom_error",
  "hyper",
  "hyper-proxy",
  "hyper-tls",
@@ -370,12 +369,6 @@ dependencies = [
  "generic-array",
  "subtle",
 ]
-
-[[package]]
-name = "custom_error"
-version = "1.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93a0fc65739ae998afc8d68e64bdac2efd1bc4ffa1a0703d171ef2defae3792f"
 
 [[package]]
 name = "digest"

@@ -16,7 +16,6 @@ toml = "0.5"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_urlencoded = "*"
 serde_json = "*"
-custom_error = "1.7"
 chrono = "0.4"
 ansi_term = "0.12"
 linked-hash-map = { version = "0.5.4", features = ["serde_impl"] }
