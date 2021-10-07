@@ -40,7 +40,10 @@ impl Display for PublishedVersion {
 }
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-const TRAVIS_OS_NAME_OPT: Option<&str> = option_env!("TRAVIS_OS_NAME");
+
+// The environment variable is provided by github actions.
+// See https://docs.github.com/en/actions/learn-github-actions/environment-variables
+const CI_RUNNER_OS: Option<&str> = option_env!("RUNNER_OS");
 
 pub fn print_version() {
     println!(
@@ -58,8 +61,10 @@ pub fn print_version() {
     }
 }
 
-fn os_name() -> &'static str {
-    TRAVIS_OS_NAME_OPT.unwrap_or("osx")
+fn os_name() -> String {
+    CI_RUNNER_OS
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "macos".to_owned())
 }
 
 pub fn check_new_version() -> Result<Option<PublishedVersion>, String> {

@@ -4,6 +4,8 @@ use std::{env, fs};
 use ansi_term::{Color, Style};
 use reqwest::Proxy;
 
+use crate::version::VERSION;
+
 pub fn path_to_absolute(path: &str) -> PathBuf {
     let home = env::var("HOME").expect("HOME is not set");
     let abs = path.replace("~", &home).replace("$HOME", &home);
@@ -35,6 +37,7 @@ pub fn get_https_client() -> Result<reqwest::blocking::Client, String> {
         );
     }
     builder
+        .user_agent(format!("awscredx/{}", VERSION))
         .build()
         .map_err(|e| format!("cannot build http client: {}", e))
 }
