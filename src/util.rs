@@ -26,8 +26,8 @@ pub fn get_https_proxy() -> Option<String> {
         .map(|x| x.into_string().expect("https_proxy is utf8"))
 }
 
-pub fn get_https_client() -> Result<reqwest::Client, String> {
-    let mut builder = reqwest::ClientBuilder::new();
+pub fn get_https_client() -> Result<reqwest::blocking::Client, String> {
+    let mut builder = reqwest::blocking::ClientBuilder::new();
     if let Some(proxy_url) = get_https_proxy() {
         builder = builder.proxy(
             Proxy::all(&proxy_url)

@@ -14,6 +14,7 @@ use crate::credentials::CredentialsFile;
 use crate::init::SHELL_VAR;
 use crate::util;
 use crate::{state, styles};
+use tokio::runtime::{Builder, Runtime};
 
 mod assumer;
 mod main_credentials;
@@ -110,7 +111,7 @@ fn print_sh_profile(profile_name: &str, config: &Config, zsh: bool) {
 }
 
 fn get_https_connector() -> Result<ProxyConnector<HttpsConnector<HttpConnector>>, String> {
-    let connector = HttpsConnector::new(2).expect("connector with 2 threads");
+    let connector = HttpsConnector::new();
     Ok(match util::get_https_proxy() {
         Some(proxy_url) => {
             let url = proxy_url
@@ -145,4 +146,11 @@ Then open a new console window and you can assume a role as before with {}
         styles::path().paint("awscredx init fish | source"),
         styles::number().paint("assume <profile-name-in-your-config.toml>"),
     );
+}
+
+fn create_runtime() -> Runtime {
+    Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("cannot build runtime")
 }

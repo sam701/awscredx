@@ -79,6 +79,7 @@ impl<'a> RoleAssumer<'a> {
 }
 
 fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCredentials, String> {
+    let runtime = super::create_runtime();
     let cred = match subject {
         AssumeSubject::Role {
             role_arn,
@@ -89,10 +90,12 @@ fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCrede
                 role_session_name: session_name,
                 ..Default::default()
             };
-            let result = client
-                .assume_role(req)
-                .sync()
-                .map_err(|e| format!("unable to assume role: {}", e))?;
+            let result = runtime.block_on(async move {
+                client
+                    .assume_role(req)
+                    .await
+                    .map_err(|e| format!("unable to assume role: {}", e))
+            })?;
             result
                 .credentials
                 .expect("STS successful response contains None credentials")
@@ -106,10 +109,12 @@ fn assume_subject(client: &StsClient, subject: AssumeSubject) -> Result<AwsCrede
                 token_code: Some(token_code),
                 duration_seconds: None,
             };
-            let result = client
-                .get_session_token(req)
-                .sync()
-                .map_err(|e| format!("Unable to get MFA session token: {}", e))?;
+            let result = runtime.block_on(async move {
+                client
+                    .get_session_token(req)
+                    .await
+                    .map_err(|e| format!("Unable to get MFA session token: {}", e))
+            })?;
 
             result
                 .credentials

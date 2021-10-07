@@ -50,10 +50,14 @@ fn rotate_credentials(cred_file: &mut CredentialsFile, config: &Config) -> Resul
         config.rotate_credentials_days.unwrap()
     );
     eprint!("  Creating new access key... ");
-    let ak_resp = client
-        .create_access_key(CreateAccessKeyRequest { user_name: None })
-        .sync()
-        .map_err(|e| format!("cannot create new IAM access key: {}", e))?;
+    let runtime = super::create_runtime();
+    let client2 = client.clone();
+    let ak_resp = runtime.block_on(async move {
+        client2
+            .create_access_key(CreateAccessKeyRequest { user_name: None })
+            .await
+            .map_err(|e| format!("cannot create new IAM access key: {}", e))
+    })?;
     let ok_style = Style::new().fg(Color::Green).bold();
     eprintln!("{}", ok_style.paint("ok"));
 
@@ -69,13 +73,15 @@ fn rotate_credentials(cred_file: &mut CredentialsFile, config: &Config) -> Resul
     cred_file.write()?;
 
     eprint!("  Deleting old access key... ");
-    client
-        .delete_access_key(DeleteAccessKeyRequest {
-            access_key_id: access_key.clone(),
-            user_name: None,
-        })
-        .sync()
-        .map_err(|e| format!("cannot delete old access key({}): {}", &access_key, e))?;
+    runtime.block_on(async move {
+        client
+            .delete_access_key(DeleteAccessKeyRequest {
+                access_key_id: access_key.clone(),
+                user_name: None,
+            })
+            .await
+            .map_err(|e| format!("cannot delete old access key({}): {}", &access_key, e))
+    })?;
     eprintln!("{}", ok_style.paint("ok"));
 
     Ok(())
