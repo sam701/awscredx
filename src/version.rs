@@ -50,7 +50,7 @@ pub fn print_version() {
     match check_new_version() {
         Ok(Some(pv)) => println!("{:>2}", &pv),
         Ok(None) => {}
-        Err(e) => println!(
+        Err(e) => eprintln!(
             "{}: {}",
             Style::new().fg(Color::Red).bold().paint("ERROR"),
             e

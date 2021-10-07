@@ -119,7 +119,7 @@ fn read_config() -> Config {
             ::std::process::exit(1);
         }
         Err(e) => {
-            println!(
+            eprintln!(
                 "{}: cannot read config: {}",
                 styles::error().paint("ERROR"),
                 e
