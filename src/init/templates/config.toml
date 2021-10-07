@@ -21,7 +21,8 @@ mfa_serial_number = "arn:aws:iam::MAIN_ACCOUNT_ID:mfa/USERNAME"
 # mfa_command = "ykman oath accounts code | awk '/SOME_PATTERN/ {print $2}'"
 
 # How often to check for new version.
-check_new_version_interval_days = 7
+# Comment out to disable.
+check_new_version_interval_days = 30
 
 # This will prepend the assumed profile and the expiration time to your shell prompt.
 # You can disable this feature and directly use environment variable `AWS_PROFILE` with

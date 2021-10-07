@@ -17,7 +17,7 @@ pub struct Config {
     mfa_serial_number: String,
     mfa_command: Option<String>,
     pub profiles: LinkedHashMap<ProfileName, Profile>,
-    pub check_new_version_interval_days: u32,
+    pub check_new_version_interval_days: Option<u32>,
     pub modify_shell_prompt: bool,
     pub region: Region,
     session_name: String,
@@ -108,7 +108,7 @@ impl Config {
                     )
                 })
                 .collect(),
-            check_new_version_interval_days: rc.check_new_version_interval_days.unwrap_or(7),
+            check_new_version_interval_days: rc.check_new_version_interval_days,
             modify_shell_prompt: rc.modify_shell_prompt.unwrap_or(true),
             region,
             session_name: rc.session_name.unwrap_or_else(|| "awscredx".to_owned()),

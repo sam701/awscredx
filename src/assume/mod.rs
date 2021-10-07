@@ -44,12 +44,13 @@ fn run_raw(profile: &str, config: &Config) -> Result<(), String> {
     let mut assumer = RoleAssumer::new(config.region.clone(), &mut cred_file, config);
     assumer.assume(profile)?;
     print_profile(profile, config);
-    if Utc::now() - state.last_version_check_time
-        > Duration::days(config.check_new_version_interval_days as i64)
-    {
-        check_newer_version();
-        state.last_version_check_time = Utc::now();
-        state.save()?;
+
+    if let Some(check_every_days) = config.check_new_version_interval_days {
+        if Utc::now() - state.last_version_check_time > Duration::days(check_every_days as i64) {
+            check_newer_version();
+            state.last_version_check_time = Utc::now();
+            state.save()?;
+        }
     }
 
     main_credentials::rotate_if_needed(config, &mut cred_file, &mut state)?;
