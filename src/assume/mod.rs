@@ -128,7 +128,7 @@ fn outdated_script() -> bool {
 }
 
 fn print_update_instructions() {
-    println!(
+    eprintln!(
         r#"
 {}
 This new version introduces a breaking change in the script initialization.
