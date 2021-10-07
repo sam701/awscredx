@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, fs};
 
 use crate::init::SHELL_VAR;
 use crate::util;
@@ -27,8 +27,8 @@ pub fn run(shell: &str, init_type: InitType) {
             }
         }
         Full => {
-            print_delete_deprecated_script("script.sh");
-            print_delete_deprecated_script("script.fish");
+            delete_deprecated_script("script.sh");
+            delete_deprecated_script("script.fish");
             let tmpl = if shell == "fish" {
                 include_str!("templates/init.fish")
             } else {
@@ -42,10 +42,10 @@ pub fn run(shell: &str, init_type: InitType) {
     }
 }
 
-fn print_delete_deprecated_script(file: &str) {
+fn delete_deprecated_script(file: &str) {
     let dir = util::path_to_absolute(util::STORAGE_DIR);
     let file = dir.join(file);
     if file.exists() {
-        println!("rm -r {}", file.to_str().unwrap());
+        fs::remove_file(&file).expect("cannot delete file");
     }
 }
